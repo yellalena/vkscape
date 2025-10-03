@@ -20,7 +20,7 @@ func InitService() *VkScapeService {
 	token := os.Getenv("VK_API_KEY")
 
 	client := vkapi.InitClient(token)
-	parser := parser.InitParser(client)
+	parser := parser.InitParser()
 
 	return &VkScapeService{
 		Client: client,

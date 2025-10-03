@@ -1,11 +1,16 @@
 package parser
 
 import (
-	"os"
-	"strconv"
+	"fmt"
 	"sync"
 
 	vkObject "github.com/SevereCloud/vksdk/v2/object"
+	"github.com/yellalena/vkscape/internal/utils"
+)
+
+const (
+	PostFileNameTemplate  = "post_%d_%s"
+	ImageFileNameTemplate = "%s_%d"
 )
 
 func (p *VKParser) ParseWallPosts(wg *sync.WaitGroup, outputDir string, posts []vkObject.WallWallpost) {
@@ -28,19 +33,21 @@ func (p *VKParser) processPost(outputDir string, post vkObject.WallWallpost) {
 		// Skip empty posts (non-image attachments)
 	}
 
-	post_name := "post_" + strconv.Itoa(post.ID) + "_" + convertDate(post.Date)
-	dir_name := outputDir + "/" + post_name
-	os.MkdirAll(dir_name, 0755)
+	post_name := fmt.Sprintf(PostFileNameTemplate, post.ID, convertDate(post.Date))
+	dir_name := utils.CreateSubDirectory(outputDir, post_name)
 
-	text_filename := post_name + ".txt"
-	post_text := post.Text
-	os.WriteFile(dir_name+"/"+text_filename, []byte(post_text), 0644)
+	err := utils.SaveFile(dir_name, post_name+".txt", []byte(post.Text))
+	if err != nil {
+		// todo
+		panic(err)
+	}
 
 	for _, attachment := range post.Attachments {
 		switch attachment.Type {
 		case "photo":
 			photo := attachment.Photo
-			downloadImage(photo.Sizes[len(photo.Sizes)-1].BaseImage.URL, dir_name+"/"+post_name+"_"+strconv.Itoa(photo.ID)+".jpg")
+			filename := fmt.Sprintf(ImageFileNameTemplate, post_name, photo.ID)
+			downloadImage(photo.Sizes[len(photo.Sizes)-1].BaseImage.URL, dir_name, filename+".jpg") // todo: process errors
 		}
 	}
 }

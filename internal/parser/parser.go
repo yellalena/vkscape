@@ -1,14 +1,12 @@
 package parser
 
 import (
-	"io"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
-	"github.com/yellalena/vkscape/internal/vkapi"
+	"github.com/yellalena/vkscape/internal/utils"
 )
 
 const (
@@ -17,13 +15,10 @@ const (
 )
 
 type VKParser struct {
-	Client vkapi.VKClient
 }
 
-func InitParser(client vkapi.VKClient) VKParser {
-	return VKParser{
-		Client: client,
-	}
+func InitParser() VKParser {
+	return VKParser{}
 }
 
 func convertDate(timestamp int) string {
@@ -37,19 +32,12 @@ func convertDate(timestamp int) string {
 	return tm.Format(DateFormat)
 }
 
-func downloadImage(url, filepath string) error {
+func downloadImage(url, outputDir, filename string) error {
 	response, e := http.Get(url)
 	if e != nil {
 		log.Fatal(e)
 	}
 	defer response.Body.Close()
 
-	out, err := os.Create(filepath)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, response.Body)
-	return err
+	return utils.SaveObject(outputDir, filename, response.Body)
 }
