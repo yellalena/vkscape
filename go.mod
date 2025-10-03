@@ -3,11 +3,14 @@ module github.com/yellalena/vkscape
 go 1.24.1
 
 require (
-	github.com/SevereCloud/vksdk/v2 v2.17.0 // indirect
+	github.com/SevereCloud/vksdk/v2 v2.17.0
+	github.com/joho/godotenv v1.5.1
+	github.com/spf13/cobra v1.10.1
+)
+
+require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
-	github.com/spf13/cobra v1.10.1 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect

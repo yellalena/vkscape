@@ -11,7 +11,10 @@ import (
 	"github.com/yellalena/vkscape/internal/vkapi"
 )
 
-const PostTypePost = "post"
+const (
+	PostTypePost = "post"
+	DateFormat   = "20060102"
+)
 
 type VKParser struct {
 	Client vkapi.VKClient
@@ -31,7 +34,7 @@ func convertDate(timestamp int) string {
 		panic(err)
 	}
 	tm := time.Unix(i, 0)
-	return tm.Format("20060102")
+	return tm.Format(DateFormat)
 }
 
 func downloadImage(url, filepath string) error {
