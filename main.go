@@ -3,23 +3,38 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
+	"sync"
+
+	"github.com/joho/godotenv"
+	"github.com/yellalena/vkscape/internal/parser"
 	"github.com/yellalena/vkscape/internal/vkapi"
 )
 
 func main() {
-	vkapi.InitClient()
+	_ = godotenv.Load()
 
-	var groupID string
-	fmt.Println("Insert group ID:")
-	fmt.Scanln(&groupID)
+	token := os.Getenv("VK_API_KEY")
 
-	var posts = vkapi.GetPosts(groupID, 5)
+	client := vkapi.InitClient(token)
+	parser := parser.InitParser(client)
 
-	for _, post := range posts {
-		fmt.Println(post.Text)
-		fmt.Println("––––––––––––––––––––––")
-	}
+	var wg sync.WaitGroup
+
+	groupID := "shantibiotic"
+	// fmt.Println("Insert group ID:")
+	// fmt.Scanln(&groupID)
+
+	// todo: move
+	groupDir := fmt.Sprintf("output/group_%s", groupID)
+	os.MkdirAll(groupDir, 0755)
+
+	posts := client.GetPosts(groupID, 20)
+	client.GetWallPostById("-47521143_162")
+	parser.ParseWallPosts(&wg, groupDir, posts)
+
+	wg.Wait()
 
 	log.Println("Done.")
 }
