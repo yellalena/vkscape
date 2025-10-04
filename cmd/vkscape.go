@@ -2,14 +2,19 @@ package cmd
 
 import (
 	"fmt"
+	"strconv"
 
+	"github.com/yellalena/vkscape/internal/models"
 	"github.com/yellalena/vkscape/internal/utils"
 	"github.com/yellalena/vkscape/internal/vkscape"
 )
 
+// todo improve logging
+
 func DownloadGroups(groupIDs []string) {
 	svc := vkscape.InitService()
-
+	// todo: add some check for groupID format - number should be negative
+	// maybe separate command for parsin profile, but reusing same GetPosts method
 	for _, groupID := range groupIDs {
 		groupDir := utils.CreateGroupDirectory(groupID)
 		fmt.Println("Created dir:", groupDir)
@@ -19,6 +24,30 @@ func DownloadGroups(groupIDs []string) {
 	}
 
 	// utils.ZipFolder("vk_archive.zip")
+
+	svc.Wg.Wait()
+}
+
+func DownloadAlbums(ownerID int, albumIDs []string) {
+	svc := vkscape.InitService()
+	var albums []models.PhotoAlbum
+
+	if len(albumIDs) == 0 {
+		vkAlbums := svc.Client.GetAlbums(ownerID)
+		albums = models.VkAlbumsToPhotoAlbums(vkAlbums)
+		fmt.Println("Found albums:", len(albumIDs))
+	} else {
+		albums = models.AlbumIDsToPhotoAlbums(albumIDs)
+		fmt.Println("Using provided albums:", len(albumIDs)) // todo maybe get album info from VK
+	}
+
+	for _, album := range albums {
+		albumDir := utils.CreateAlbumDirectory(album)
+		fmt.Println("Created dir:", albumDir)
+		photos := svc.Client.GetPhotos(ownerID, strconv.Itoa(album.ID))
+		fmt.Println("Found photos:", len(photos))
+		svc.Parser.ParseAlbumPhotos(&svc.Wg, albumDir, strconv.Itoa(album.ID), photos)
+	}
 
 	svc.Wg.Wait()
 }

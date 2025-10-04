@@ -18,12 +18,12 @@ func (p *VKParser) ParseWallPosts(wg *sync.WaitGroup, outputDir string, posts []
 		wg.Add(1)
 		go func(post vkObject.WallWallpost) {
 			defer wg.Done()
-			p.processPost(outputDir, post)
+			processPost(outputDir, post)
 		}(post)
 	}
 }
 
-func (p *VKParser) processPost(outputDir string, post vkObject.WallWallpost) {
+func processPost(outputDir string, post vkObject.WallWallpost) {
 	if post.PostType != PostTypePost || post.CopyHistory != nil {
 		// Don't download reposts or non-posts
 		return

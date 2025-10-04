@@ -5,17 +5,27 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/yellalena/vkscape/internal/models"
 )
 
 const (
 	OutputDir      = "vkscape_output"
 	OutputGroupDir = "group_%s"
+	OutputAlbumDir = "album_%d"
 )
 
 func CreateGroupDirectory(groupID string) string {
 	groupDir := filepath.Join(OutputDir, fmt.Sprintf(OutputGroupDir, groupID))
 	_ = os.MkdirAll(groupDir, 0755)
 	return groupDir
+}
+
+func CreateAlbumDirectory(album models.PhotoAlbum) string {
+	albumDir := filepath.Join(OutputDir, fmt.Sprintf(OutputAlbumDir, album.ID))
+	_ = os.MkdirAll(albumDir, 0755)
+	_ = SaveFile(albumDir, "album_info.txt", fmt.Appendf(nil, "Title: %s\nDescription: %s\nID: %d\n", album.Title, album.Description, album.ID))
+	return albumDir
 }
 
 func CreateSubDirectory(parentDir, subDir string) string {

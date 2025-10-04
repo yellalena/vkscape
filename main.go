@@ -7,5 +7,4 @@ import (
 func main() {
 	cmd.Execute()
 
-	// client.GetWallPostById("-47521143_162")
 }
