@@ -34,11 +34,15 @@ func processPost(outputDir string, post vkObject.WallWallpost) {
 	}
 
 	post_name := fmt.Sprintf(PostFileNameTemplate, post.ID, convertDate(post.Date))
-	dir_name := utils.CreateSubDirectory(outputDir, post_name)
-
-	err := utils.SaveFile(dir_name, post_name+".txt", []byte(post.Text))
+	dir_name, err := utils.CreateSubDirectory(outputDir, post_name)
 	if err != nil {
-		// todo
+		// todo: log error, return
+		panic(err)
+	}
+
+	err = utils.SaveFile(dir_name, post_name+".txt", []byte(post.Text))
+	if err != nil {
+		// todo: log error, return
 		panic(err)
 	}
 
@@ -47,7 +51,11 @@ func processPost(outputDir string, post vkObject.WallWallpost) {
 		case "photo":
 			photo := attachment.Photo
 			filename := fmt.Sprintf(ImageFileNameTemplate, post_name, photo.ID)
-			downloadImage(photo.Sizes[len(photo.Sizes)-1].BaseImage.URL, dir_name, filename+".jpg") // todo: process errors
+			err := downloadImage(photo.Sizes[len(photo.Sizes)-1].BaseImage.URL, dir_name, filename+".jpg") // todo: process errors
+			if err != nil {
+				// todo: log error, continue
+				fmt.Println("Error downloading image:", err)
+			}
 		}
 	}
 }

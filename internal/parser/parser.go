@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -35,7 +34,7 @@ func convertDate(timestamp int) string {
 func downloadImage(url, outputDir, filename string) error {
 	response, e := http.Get(url)
 	if e != nil {
-		log.Fatal(e)
+		return e
 	}
 	defer response.Body.Close()
 

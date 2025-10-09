@@ -11,21 +11,27 @@ import (
 
 // todo improve logging
 
-func DownloadGroups(groupIDs []string) {
+func DownloadGroups(groupIDs []string) error {
 	svc := vkscape.InitService()
 	// todo: add some check for groupID format - number should be negative
 	// maybe separate command for parsin profile, but reusing same GetPosts method
 	for _, groupID := range groupIDs {
-		groupDir := utils.CreateGroupDirectory(groupID)
+		groupDir, err := utils.CreateGroupDirectory(groupID)
+		if err != nil {
+			return fmt.Errorf("failed to create directory for group %s: %w", groupID, err)
+		}
 		fmt.Println("Created dir:", groupDir)
-		posts := svc.Client.GetPosts(groupID, 5) // todo: remove limit
+		posts, err := svc.Client.GetPosts(groupID, 5) // todo: remove limit
+		if err != nil {
+			return fmt.Errorf("failed to get posts for group %s: %w", groupID, err)
+		}
 		fmt.Println("Found posts:", len(posts))
 		svc.Parser.ParseWallPosts(&svc.Wg, groupDir, posts)
 	}
 
-	// utils.ZipFolder("vk_archive.zip")
-
 	svc.Wg.Wait()
+
+	return nil
 }
 
 func DownloadAlbums(ownerID int, albumIDs []string) {

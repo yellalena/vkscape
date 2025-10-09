@@ -23,7 +23,12 @@ var groupDownloadCmd = &cobra.Command{
 			return
 		}
 		idList := strings.Split(ids, ",")
-		DownloadGroups(idList)
+
+		err = DownloadGroups(idList)
+		if err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
 	},
 }
 

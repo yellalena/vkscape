@@ -7,17 +7,17 @@ import (
 	vkObject "github.com/SevereCloud/vksdk/v2/object"
 )
 
-func (VK *VKClient) GetPosts(groupID string, count int) []vkObject.WallWallpost {
+func (VK *VKClient) GetPosts(groupID string, count int) ([]vkObject.WallWallpost, error) {
 	res, err := VK.Client.WallGet(api.Params{
 		"owner_id": groupID,
 		"count":    count,
 	})
 
 	if err != nil {
-		log.Fatalf("Error: %v", err)
+		return nil, err
 	}
 
-	return res.Items
+	return res.Items, nil
 }
 
 func (VK *VKClient) GetWallPostById(postID string) vkObject.WallWallpost {

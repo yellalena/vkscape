@@ -15,10 +15,10 @@ const (
 	OutputAlbumDir = "album_%d"
 )
 
-func CreateGroupDirectory(groupID string) string {
+func CreateGroupDirectory(groupID string) (string, error) {
 	groupDir := filepath.Join(OutputDir, fmt.Sprintf(OutputGroupDir, groupID))
-	_ = os.MkdirAll(groupDir, 0755)
-	return groupDir
+	err := os.MkdirAll(groupDir, 0755)
+	return groupDir, err
 }
 
 func CreateAlbumDirectory(album models.PhotoAlbum) string {
@@ -28,10 +28,10 @@ func CreateAlbumDirectory(album models.PhotoAlbum) string {
 	return albumDir
 }
 
-func CreateSubDirectory(parentDir, subDir string) string {
+func CreateSubDirectory(parentDir, subDir string) (string, error) {
 	dir := filepath.Join(parentDir, subDir)
-	_ = os.MkdirAll(dir, 0755)
-	return dir
+	err := os.MkdirAll(dir, 0755)
+	return dir, err
 }
 
 func SaveFile(parentDir, filename string, content []byte) error {
