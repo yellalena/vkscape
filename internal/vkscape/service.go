@@ -1,10 +1,9 @@
 package vkscape
 
 import (
-	"os"
 	"sync"
 
-	"github.com/joho/godotenv"
+	"github.com/yellalena/vkscape/internal/config"
 	"github.com/yellalena/vkscape/internal/parser"
 	"github.com/yellalena/vkscape/internal/vkapi"
 )
@@ -16,10 +15,12 @@ type VkScapeService struct {
 }
 
 func InitService() *VkScapeService {
-	_ = godotenv.Load()
-	token := os.Getenv("VK_API_KEY")
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		panic("failed to load config: " + err.Error()) // todo
+	}
 
-	client := vkapi.InitClient(token)
+	client := vkapi.InitClient(cfg.AccessToken)
 	parser := parser.InitParser()
 
 	return &VkScapeService{

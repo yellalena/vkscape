@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/yellalena/vkscape/internal/auth"
+	"github.com/yellalena/vkscape/internal/config"
 	"github.com/yellalena/vkscape/internal/models"
 	"github.com/yellalena/vkscape/internal/utils"
 	"github.com/yellalena/vkscape/internal/vkscape"
@@ -56,4 +58,25 @@ func DownloadAlbums(ownerID int, albumIDs []string) {
 	}
 
 	svc.Wg.Wait()
+}
+
+func InteractiveAuth() {
+	err := auth.InteractiveFlow()
+	if err != nil {
+		fmt.Println("Authentication failed:", err)
+		return
+	}
+}
+
+func AppTokenAuth(token string) {
+	cfg := &config.AuthConfig{
+		AuthMethod:  config.AuthMethodAppToken,
+		AccessToken: token,
+	}
+
+	err := config.SaveConfig(cfg)
+	if err != nil {
+		fmt.Println("Failed to save config:", err)
+		return
+	}
 }
