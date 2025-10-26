@@ -57,7 +57,7 @@ func GetConfigPath() (string, error) {
 
 	appDir := filepath.Join(configDir, "vkscape")
 
-	err = os.MkdirAll(appDir, 0755)
+	err = os.MkdirAll(appDir, 0750)
 	if err != nil {
 		return "", err
 	}

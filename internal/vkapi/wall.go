@@ -18,7 +18,7 @@ func (VK *VKClient) GetPosts(groupID string, count int) ([]vkObject.WallWallpost
 	return res.Items, nil
 }
 
-func (VK *VKClient) GetWallPostById(postID string) vkObject.WallWallpost {
+func (VK *VKClient) GetWallPostByID(postID string) vkObject.WallWallpost {
 	res, err := VK.Client.WallGetByID(api.Params{
 		"posts": postID,
 	})

@@ -1,4 +1,3 @@
-// internal/auth/pkce.go
 package auth
 
 import (
@@ -27,9 +26,10 @@ var _ = godotenv.Load()
 var vkClientID = os.Getenv("VK_CLIENT_ID")
 
 const (
-	vkRedirectURI   = "https://oauth.vk.com/blank.html"
-	vkScope         = "wall,photos,groups,offline"
-	vkAuthEndpoint  = "https://id.vk.com/authorize"
+	vkRedirectURI  = "https://oauth.vk.com/blank.html"
+	vkScope        = "wall,photos,groups,offline"
+	vkAuthEndpoint = "https://id.vk.com/authorize"
+	//nolint:gosec // not a credential
 	vkTokenEndpoint = "https://id.vk.com/oauth2/auth"
 )
 
@@ -108,12 +108,13 @@ func InteractiveFlow(logger *slog.Logger) error {
 }
 
 func generatePKCE() (verifier, challenge string) {
-	verifierBytes := make([]byte, 32)
+	const verifyerLength = 32
+	verifierBytes := make([]byte, verifyerLength)
 	_, _ = rand.Read(verifierBytes)
 	verifier = base64.RawURLEncoding.EncodeToString(verifierBytes)
 	sha := sha256.Sum256([]byte(verifier))
 	challenge = base64.RawURLEncoding.EncodeToString(sha[:])
-	return
+	return verifier, challenge
 }
 
 func openBrowser(url string, logger *slog.Logger) {

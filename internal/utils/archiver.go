@@ -1,3 +1,4 @@
+//nolint:revive // we're fine with utils
 package utils
 
 import (

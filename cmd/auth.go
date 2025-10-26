@@ -17,7 +17,7 @@ var authCmd = &cobra.Command{
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		logger := logger.InitLogger()
-		
+
 		if tokenFlag == "" && !userFlag {
 			logger.Error("Please provide either --token or --user flag")
 			return

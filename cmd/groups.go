@@ -14,7 +14,7 @@ var groupDownloadCmd = &cobra.Command{
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		logger := logger.InitLogger()
-		
+
 		ids, err := cmd.Flags().GetString("ids")
 		if err != nil {
 			logger.Error("Error getting ids flag", "error", err)
