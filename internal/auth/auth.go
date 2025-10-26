@@ -132,5 +132,8 @@ func openBrowser(url string) {
 		args = []string{url}
 	}
 
-	exec.Command(cmd, args...).Start()
+	err := exec.Command(cmd, args...).Start()
+	if err != nil {
+		fmt.Printf("Failed to open browser. Please open the following URL manually: %s\n", url)
+	}
 }

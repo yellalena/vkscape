@@ -31,6 +31,7 @@ func processPost(outputDir string, post vkObject.WallWallpost) {
 
 	if post.Text == "" && len(post.Attachments) == 0 {
 		// Skip empty posts (non-image attachments)
+		return
 	}
 
 	post_name := fmt.Sprintf(PostFileNameTemplate, post.ID, convertDate(post.Date))

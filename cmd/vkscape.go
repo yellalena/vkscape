@@ -41,6 +41,7 @@ func DownloadAlbums(ownerID int, albumIDs []string) {
 	var albums []models.PhotoAlbum
 
 	if len(albumIDs) == 0 {
+		// Not usable yet due to lack of permissions from VK side
 		vkAlbums := svc.Client.GetAlbums(ownerID)
 		albums = models.VkAlbumsToPhotoAlbums(vkAlbums)
 		fmt.Println("Found albums:", len(albumIDs))
