@@ -1,25 +1,28 @@
 package vkapi
 
 import (
-	"log"
+	"log/slog"
 
 	"github.com/SevereCloud/vksdk/v2/api"
 )
 
 type VKClient struct {
 	Client *api.VK
+	logger *slog.Logger
 }
 
-func InitClient(token string) VKClient {
+func InitClient(token string, logger *slog.Logger) VKClient {
 	if token == "" {
-		log.Fatal("VK_API_KEY not found.")
+		logger.Error("VK_API_KEY not found")
+		panic("VK_API_KEY not found")
 	}
 
 	VK := api.NewVK(token)
-	log.Println("VK API client initialized.")
+	logger.Info("VK API client initialized")
 
 	return VKClient{
 		Client: VK,
+		logger: logger,
 	}
 }
 

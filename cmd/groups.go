@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/yellalena/vkscape/internal/logger"
 )
 
 var groupDownloadCmd = &cobra.Command{
@@ -13,20 +13,22 @@ var groupDownloadCmd = &cobra.Command{
 	Long:  "Download posts from groups by their IDs",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
+		logger := logger.InitLogger()
+		
 		ids, err := cmd.Flags().GetString("ids")
 		if err != nil {
-			fmt.Println("Error:", err)
+			logger.Error("Error getting ids flag", "error", err)
 			return
 		}
 		if ids == "" {
-			fmt.Println("Please provide at least one group ID using --ids flag")
+			logger.Error("Please provide at least one group ID using --ids flag")
 			return
 		}
 		idList := strings.Split(ids, ",")
 
-		err = DownloadGroups(idList)
+		err = DownloadGroups(idList, logger)
 		if err != nil {
-			fmt.Println("Error:", err)
+			logger.Error("Error downloading groups", "error", err)
 			return
 		}
 	},

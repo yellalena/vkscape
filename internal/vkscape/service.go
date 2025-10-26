@@ -1,6 +1,7 @@
 package vkscape
 
 import (
+	"log/slog"
 	"sync"
 
 	"github.com/yellalena/vkscape/internal/config"
@@ -14,14 +15,15 @@ type VkScapeService struct {
 	Wg     sync.WaitGroup
 }
 
-func InitService() *VkScapeService {
+func InitService(logger *slog.Logger) *VkScapeService {
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		panic("failed to load config: " + err.Error()) // todo
+		logger.Error("Failed to load config", "error", err)
+		panic("failed to load config: " + err.Error())
 	}
 
-	client := vkapi.InitClient(cfg.AccessToken)
-	parser := parser.InitParser()
+	client := vkapi.InitClient(cfg.AccessToken, logger)
+	parser := parser.InitParser(logger)
 
 	return &VkScapeService{
 		Client: client,

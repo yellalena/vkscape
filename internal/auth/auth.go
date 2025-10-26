@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -39,18 +40,17 @@ type TokenResponse struct {
 	TokenType    string `json:"token_type"`
 }
 
-func InteractiveFlow() error {
+func InteractiveFlow(logger *slog.Logger) error {
 	verifier, challenge := generatePKCE()
 
 	authURL := fmt.Sprintf("%s?response_type=code&client_id=%s&redirect_uri=%s&scope=%s&state=12345&code_challenge=%s&code_challenge_method=S256",
 		vkAuthEndpoint, vkClientID, url.QueryEscape(vkRedirectURI), vkScope, challenge)
 
-	fmt.Println("\n🔐 Please open this URL in your browser and login:")
-	fmt.Println(authURL)
-	openBrowser(authURL)
+	logger.Info("🔐 Please open this URL in your browser and login", "url", authURL)
+	openBrowser(authURL, logger)
 
-	fmt.Println("\nAfter authorizing, you’ll be redirected to a blank page.")
-	fmt.Println("Copy the FULL URL from the address bar and paste it here:")
+	logger.Info("After authorizing, you'll be redirected to a blank page.")
+	logger.Info("Copy the FULL URL from the address bar and paste it here:")
 	fmt.Print("Paste redirect URL: ")
 	reader := bufio.NewReader(os.Stdin)
 	redirectURL, _ := reader.ReadString('\n')
@@ -68,7 +68,7 @@ func InteractiveFlow() error {
 		return errors.New("authorization code or device_id not found in URL")
 	}
 
-	fmt.Println("\n✅ Received code and device_id. Exchanging for token...")
+	logger.Info("✅ Received code and device_id. Exchanging for token...")
 
 	form := url.Values{}
 	form.Add("grant_type", "authorization_code")
@@ -88,7 +88,7 @@ func InteractiveFlow() error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("VK token exchange failed. Status: %s", resp.Status)
+		logger.Error("VK token exchange failed", "status", resp.Status)
 		return fmt.Errorf("VK token exchange failed: %s", resp.Status)
 	}
 
@@ -116,7 +116,7 @@ func generatePKCE() (verifier, challenge string) {
 	return
 }
 
-func openBrowser(url string) {
+func openBrowser(url string, logger *slog.Logger) {
 	var cmd string
 	var args []string
 
@@ -134,6 +134,7 @@ func openBrowser(url string) {
 
 	err := exec.Command(cmd, args...).Start()
 	if err != nil {
-		fmt.Printf("Failed to open browser. Please open the following URL manually: %s\n", url)
+		logger.Warn("Failed to open browser", "error", err, "url", url)
+		logger.Info("Please open the following URL manually", "url", url)
 	}
 }

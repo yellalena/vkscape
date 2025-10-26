@@ -1,8 +1,6 @@
 package vkapi
 
 import (
-	"log"
-
 	"github.com/SevereCloud/vksdk/v2/api"
 	vkObject "github.com/SevereCloud/vksdk/v2/object"
 )
@@ -26,7 +24,8 @@ func (VK *VKClient) GetWallPostById(postID string) vkObject.WallWallpost {
 	})
 
 	if err != nil {
-		log.Fatalf("Error: %v", err)
+		VK.logger.Error("Failed to get wall post by ID", "error", err, "post_id", postID)
+		panic(err)
 	}
 
 	if len(res) > 0 {

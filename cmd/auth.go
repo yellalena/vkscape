@@ -1,9 +1,8 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
+	"github.com/yellalena/vkscape/internal/logger"
 )
 
 var (
@@ -17,18 +16,20 @@ var authCmd = &cobra.Command{
 	Long:  "Authenticate with VK using whether an app token or user token (will open browser).", // todo
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
+		logger := logger.InitLogger()
+		
 		if tokenFlag == "" && !userFlag {
-			fmt.Println("Please provide either --token or --user flag")
+			logger.Error("Please provide either --token or --user flag")
 			return
 		}
 
 		if userFlag {
-			InteractiveAuth()
+			InteractiveAuth(logger)
 		} else {
-			AppTokenAuth(tokenFlag)
+			AppTokenAuth(tokenFlag, logger)
 		}
 
-		fmt.Println("Authentication successful, you can now use other commands.")
+		logger.Info("Authentication successful, you can now use other commands.")
 	},
 }
 

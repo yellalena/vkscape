@@ -18,12 +18,12 @@ func (p *VKParser) ParseWallPosts(wg *sync.WaitGroup, outputDir string, posts []
 		wg.Add(1)
 		go func(post vkObject.WallWallpost) {
 			defer wg.Done()
-			processPost(outputDir, post)
+			p.processPost(outputDir, post)
 		}(post)
 	}
 }
 
-func processPost(outputDir string, post vkObject.WallWallpost) {
+func (p *VKParser) processPost(outputDir string, post vkObject.WallWallpost) {
 	if post.PostType != PostTypePost || post.CopyHistory != nil {
 		// Don't download reposts or non-posts
 		return
@@ -37,14 +37,14 @@ func processPost(outputDir string, post vkObject.WallWallpost) {
 	post_name := fmt.Sprintf(PostFileNameTemplate, post.ID, convertDate(post.Date))
 	dir_name, err := utils.CreateSubDirectory(outputDir, post_name)
 	if err != nil {
-		// todo: log error, return
-		panic(err)
+		p.logger.Error("Failed to create subdirectory", "error", err, "post_id", post.ID, "output_dir", outputDir)
+		return
 	}
 
 	err = utils.SaveFile(dir_name, post_name+".txt", []byte(post.Text))
 	if err != nil {
-		// todo: log error, return
-		panic(err)
+		p.logger.Error("Failed to save post text", "error", err, "post_id", post.ID, "dir", dir_name)
+		return
 	}
 
 	for _, attachment := range post.Attachments {
@@ -52,10 +52,9 @@ func processPost(outputDir string, post vkObject.WallWallpost) {
 		case "photo":
 			photo := attachment.Photo
 			filename := fmt.Sprintf(ImageFileNameTemplate, post_name, photo.ID)
-			err := downloadImage(photo.Sizes[len(photo.Sizes)-1].BaseImage.URL, dir_name, filename+".jpg") // todo: process errors
+			err := downloadImage(photo.Sizes[len(photo.Sizes)-1].BaseImage.URL, dir_name, filename+".jpg")
 			if err != nil {
-				// todo: log error, continue
-				fmt.Println("Error downloading image:", err)
+				p.logger.Error("Failed to download image", "error", err, "post_id", post.ID, "photo_id", photo.ID, "url", photo.Sizes[len(photo.Sizes)-1].BaseImage.URL)
 			}
 		}
 	}

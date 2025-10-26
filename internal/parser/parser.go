@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -14,10 +15,13 @@ const (
 )
 
 type VKParser struct {
+	logger *slog.Logger
 }
 
-func InitParser() VKParser {
-	return VKParser{}
+func InitParser(logger *slog.Logger) VKParser {
+	return VKParser{
+		logger: logger,
+	}
 }
 
 func convertDate(timestamp int) string {

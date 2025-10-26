@@ -12,12 +12,15 @@ func (p *VKParser) ParseAlbumPhotos(wg *sync.WaitGroup, outputDir, albumID strin
 		wg.Add(1)
 		go func(photo vkObject.PhotosPhoto) {
 			defer wg.Done()
-			processPhoto(outputDir, albumID, photo)
+			p.processPhoto(outputDir, albumID, photo)
 		}(photo)
 	}
 }
 
-func processPhoto(outputDir, albumID string, photo vkObject.PhotosPhoto) {
+func (p *VKParser) processPhoto(outputDir, albumID string, photo vkObject.PhotosPhoto) {
 	filename := fmt.Sprintf(ImageFileNameTemplate, albumID, photo.ID)
-	downloadImage(photo.Sizes[len(photo.Sizes)-1].BaseImage.URL, outputDir, filename+".jpg") // todo: process errors
+	err := downloadImage(photo.Sizes[len(photo.Sizes)-1].BaseImage.URL, outputDir, filename+".jpg")
+	if err != nil {
+		p.logger.Error("Failed to download photo", "error", err, "album_id", albumID, "photo_id", photo.ID, "url", photo.Sizes[len(photo.Sizes)-1].BaseImage.URL)
+	}
 }

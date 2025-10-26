@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"log/slog"
 	"strconv"
 
 	"github.com/yellalena/vkscape/internal/auth"
@@ -13,8 +14,8 @@ import (
 
 // todo improve logging
 
-func DownloadGroups(groupIDs []string) error {
-	svc := vkscape.InitService()
+func DownloadGroups(groupIDs []string, logger *slog.Logger) error {
+	svc := vkscape.InitService(logger)
 	// todo: add some check for groupID format - number should be negative
 	// maybe separate command for parsin profile, but reusing same GetPosts method
 	for _, groupID := range groupIDs {
@@ -22,12 +23,12 @@ func DownloadGroups(groupIDs []string) error {
 		if err != nil {
 			return fmt.Errorf("failed to create directory for group %s: %w", groupID, err)
 		}
-		fmt.Println("Created dir:", groupDir)
+		logger.Info("Created directory", "group_id", groupID, "dir", groupDir)
 		posts, err := svc.Client.GetPosts(groupID, 5) // todo: remove limit
 		if err != nil {
 			return fmt.Errorf("failed to get posts for group %s: %w", groupID, err)
 		}
-		fmt.Println("Found posts:", len(posts))
+		logger.Info("Found posts", "group_id", groupID, "count", len(posts))
 		svc.Parser.ParseWallPosts(&svc.Wg, groupDir, posts)
 	}
 
@@ -36,40 +37,41 @@ func DownloadGroups(groupIDs []string) error {
 	return nil
 }
 
-func DownloadAlbums(ownerID int, albumIDs []string) {
-	svc := vkscape.InitService()
+func DownloadAlbums(ownerID int, albumIDs []string, logger *slog.Logger) {
+	svc := vkscape.InitService(logger)
 	var albums []models.PhotoAlbum
 
 	if len(albumIDs) == 0 {
 		// Not usable yet due to lack of permissions from VK side
 		vkAlbums := svc.Client.GetAlbums(ownerID)
 		albums = models.VkAlbumsToPhotoAlbums(vkAlbums)
-		fmt.Println("Found albums:", len(albumIDs))
+		logger.Info("Found albums", "owner_id", ownerID, "count", len(albums))
 	} else {
 		albums = models.AlbumIDsToPhotoAlbums(albumIDs)
-		fmt.Println("Using provided albums:", len(albumIDs)) // todo maybe get album info from VK
+		logger.Info("Using provided albums", "owner_id", ownerID, "count", len(albumIDs)) // todo maybe get album info from VK
 	}
 
 	for _, album := range albums {
 		albumDir := utils.CreateAlbumDirectory(album)
-		fmt.Println("Created dir:", albumDir)
+		logger.Info("Created album directory", "album_id", album.ID, "dir", albumDir)
 		photos := svc.Client.GetPhotos(ownerID, strconv.Itoa(album.ID))
-		fmt.Println("Found photos:", len(photos))
+		logger.Info("Found photos", "album_id", album.ID, "count", len(photos))
 		svc.Parser.ParseAlbumPhotos(&svc.Wg, albumDir, strconv.Itoa(album.ID), photos)
 	}
 
 	svc.Wg.Wait()
 }
 
-func InteractiveAuth() {
-	err := auth.InteractiveFlow()
+func InteractiveAuth(logger *slog.Logger) {
+	err := auth.InteractiveFlow(logger)
 	if err != nil {
-		fmt.Println("Authentication failed:", err)
+		logger.Error("Authentication failed", "error", err)
 		return
 	}
+	logger.Info("Authentication successful")
 }
 
-func AppTokenAuth(token string) {
+func AppTokenAuth(token string, logger *slog.Logger) {
 	cfg := &config.AuthConfig{
 		AuthMethod:  config.AuthMethodAppToken,
 		AccessToken: token,
@@ -77,7 +79,8 @@ func AppTokenAuth(token string) {
 
 	err := config.SaveConfig(cfg)
 	if err != nil {
-		fmt.Println("Failed to save config:", err)
+		logger.Error("Failed to save config", "error", err)
 		return
 	}
+	logger.Info("App token authentication successful")
 }
