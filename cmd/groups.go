@@ -16,7 +16,7 @@ var groupDownloadCmd = &cobra.Command{
 		verbose, _ := cmd.Flags().GetBool("verbose")
 		logger, logFile := output.InitLogger(verbose)
 		if logFile != nil {
-			defer logFile.Close()
+			defer logFile.Close() //nolint:errcheck
 		}
 
 		ids, err := cmd.Flags().GetString("ids")
@@ -39,7 +39,9 @@ var groupDownloadCmd = &cobra.Command{
 }
 
 func init() {
-	groupDownloadCmd.Flags().StringP("ids", "", "", "Comma-separated list of group IDs to download posts from")
-	groupDownloadCmd.Flags().BoolP("verbose", "v", false, "Enable verbose logging (output to both file and console)")
+	groupDownloadCmd.Flags().
+		StringP("ids", "", "", "Comma-separated list of group IDs to download posts from")
+	groupDownloadCmd.Flags().
+		BoolP("verbose", "v", false, "Enable verbose logging (output to both file and console)")
 	rootCmd.AddCommand(groupDownloadCmd)
 }

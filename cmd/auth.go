@@ -19,7 +19,7 @@ var authCmd = &cobra.Command{
 		verbose, _ := cmd.Flags().GetBool("verbose")
 		logger, logFile := output.InitLogger(verbose)
 		if logFile != nil {
-			defer logFile.Close()
+			defer logFile.Close() //nolint:errcheck
 		}
 
 		if tokenFlag == "" && !userFlag {
@@ -40,7 +40,8 @@ var authCmd = &cobra.Command{
 func init() {
 	authCmd.Flags().StringVar(&tokenFlag, "token", "", "App token to use")
 	authCmd.Flags().BoolVar(&userFlag, "user", false, "Use browser-based user authentication")
-	authCmd.Flags().BoolP("verbose", "v", false, "Enable verbose logging (output to both file and console)")
+	authCmd.Flags().
+		BoolP("verbose", "v", false, "Enable verbose logging (output to both file and console)")
 
 	rootCmd.AddCommand(authCmd)
 }

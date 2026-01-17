@@ -17,7 +17,7 @@ var albumDownloadCmd = &cobra.Command{
 		verbose, _ := cmd.Flags().GetBool("verbose")
 		logger, logFile := output.InitLogger(verbose)
 		if logFile != nil {
-			defer logFile.Close()
+			defer logFile.Close() //nolint:errcheck
 		}
 
 		ids, err := cmd.Flags().GetString("ids")
@@ -32,7 +32,9 @@ var albumDownloadCmd = &cobra.Command{
 		}
 
 		if ids == "" || owner == "" {
-			logger.Error("Please specify both owner ID using --owner flag and at least one album ID using --ids flag")
+			logger.Error(
+				"Please specify both owner ID using --owner flag and at least one album ID using --ids flag",
+			)
 			return
 		}
 
@@ -48,8 +50,10 @@ var albumDownloadCmd = &cobra.Command{
 }
 
 func init() {
-	albumDownloadCmd.Flags().StringP("ids", "", "", "Comma-separated list of group IDs to download posts from")
+	albumDownloadCmd.Flags().
+		StringP("ids", "", "", "Comma-separated list of group IDs to download posts from")
 	albumDownloadCmd.Flags().StringP("owner", "", "", "ID of the user to download albums from")
-	albumDownloadCmd.Flags().BoolP("verbose", "v", false, "Enable verbose logging (output to both file and console)")
+	albumDownloadCmd.Flags().
+		BoolP("verbose", "v", false, "Enable verbose logging (output to both file and console)")
 	rootCmd.AddCommand(albumDownloadCmd)
 }

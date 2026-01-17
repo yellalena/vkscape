@@ -24,7 +24,15 @@ func (VK *VKClient) GetPhotos(ownerID int, albumID string) []vkObject.PhotosPhot
 	})
 
 	if err != nil {
-		VK.logger.Error("Failed to get photos", "error", err, "owner_id", ownerID, "album_id", albumID)
+		VK.logger.Error(
+			"Failed to get photos",
+			"error",
+			err,
+			"owner_id",
+			ownerID,
+			"album_id",
+			albumID,
+		)
 		panic(err)
 	}
 

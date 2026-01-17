@@ -48,7 +48,13 @@ func DownloadAlbums(ownerID int, albumIDs []string, logger *slog.Logger) {
 		logger.Info("Found albums", "owner_id", ownerID, "count", len(albums))
 	} else {
 		albums = models.AlbumIDsToPhotoAlbums(albumIDs)
-		logger.Info("Using provided albums", "owner_id", ownerID, "count", len(albumIDs)) // todo maybe get album info from VK
+		logger.Info(
+			"Using provided albums",
+			"owner_id",
+			ownerID,
+			"count",
+			len(albumIDs),
+		) // todo maybe get album info from VK
 	}
 
 	for _, album := range albums {

@@ -18,16 +18,18 @@ func InitLogger(verbose bool) (*slog.Logger, *os.File) {
 	logPath := getLogPath()
 
 	logDir := filepath.Dir(logPath)
-	os.MkdirAll(logDir, 0755)
-
-	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if err == nil {
-		if verbose {
-			// When verbose is true, write to both file and console
-			ow = io.MultiWriter(file, os.Stdout)
-		} else {
-			// When verbose is false, write only to file
-			ow = file
+	if err := os.MkdirAll(logDir, 0750); err == nil {
+		file, err = os.OpenFile( //nolint:gosec // logPath is from UserHomeDir or OutputDir
+			logPath,
+			os.O_CREATE|os.O_WRONLY|os.O_APPEND,
+			0600,
+		)
+		if err == nil {
+			if verbose {
+				ow = io.MultiWriter(file, os.Stdout)
+			} else {
+				ow = file
+			}
 		}
 	}
 

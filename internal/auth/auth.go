@@ -43,8 +43,14 @@ type TokenResponse struct {
 func InteractiveFlow(logger *slog.Logger) error {
 	verifier, challenge := generatePKCE()
 
-	authURL := fmt.Sprintf("%s?response_type=code&client_id=%s&redirect_uri=%s&scope=%s&state=12345&code_challenge=%s&code_challenge_method=S256",
-		vkAuthEndpoint, vkClientID, url.QueryEscape(vkRedirectURI), vkScope, challenge)
+	authURL := fmt.Sprintf(
+		"%s?response_type=code&client_id=%s&redirect_uri=%s&scope=%s&state=12345&code_challenge=%s&code_challenge_method=S256",
+		vkAuthEndpoint,
+		vkClientID,
+		url.QueryEscape(vkRedirectURI),
+		vkScope,
+		challenge,
+	)
 
 	logger.Info("🔐 Please open this URL in your browser and login", "url", authURL)
 	openBrowser(authURL, logger)
@@ -78,14 +84,14 @@ func InteractiveFlow(logger *slog.Logger) error {
 	form.Add("device_id", deviceID)
 	form.Add("code_verifier", verifier)
 
-	req, _ := http.NewRequest("POST", vkTokenEndpoint, strings.NewReader(form.Encode()))
+	req, _ := http.NewRequest(http.MethodPost, vkTokenEndpoint, strings.NewReader(form.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		logger.Error("VK token exchange failed", "status", resp.Status)
@@ -133,7 +139,7 @@ func openBrowser(url string, logger *slog.Logger) {
 		args = []string{url}
 	}
 
-	err := exec.Command(cmd, args...).Start()
+	err := exec.Command(cmd, args...).Start() //nolint:gosec // cmd is controlled by runtime.GOOS
 	if err != nil {
 		logger.Warn("Failed to open browser", "error", err, "url", url)
 		logger.Info("Please open the following URL manually", "url", url)

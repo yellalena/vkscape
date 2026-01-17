@@ -13,13 +13,13 @@ func SetWriter(w io.Writer) {
 }
 
 func Info(msg string) {
-	fmt.Fprintln(out, msg)
+	_, _ = fmt.Fprintln(out, msg)
 }
 
 func Error(msg string) {
-	fmt.Fprintln(out, "❌ "+msg)
+	_, _ = fmt.Fprintln(out, "❌ "+msg)
 }
 
 func Success(msg string) {
-	fmt.Fprintln(out, "✅ "+msg)
+	_, _ = fmt.Fprintln(out, "✅ "+msg)
 }

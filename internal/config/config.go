@@ -39,7 +39,7 @@ func LoadConfig() (*AuthConfig, error) {
 		return nil, err
 	}
 
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // path is constructed from UserConfigDir()
 	if err != nil {
 		return nil, err
 	}

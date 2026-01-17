@@ -36,11 +36,11 @@ func convertDate(timestamp int) string {
 }
 
 func downloadImage(url, outputDir, filename string) error {
-	response, e := http.Get(url)
+	response, e := http.Get(url) //nolint:gosec // URL from trusted VK API
 	if e != nil {
 		return e
 	}
-	defer response.Body.Close()
+	defer response.Body.Close() //nolint:errcheck
 
 	return utils.SaveObject(outputDir, filename, response.Body)
 }

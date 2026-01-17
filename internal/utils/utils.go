@@ -1,4 +1,3 @@
-//nolint:revive // we're fine with utils
 package utils
 
 import (
@@ -25,7 +24,17 @@ func CreateGroupDirectory(groupID string) (string, error) {
 func CreateAlbumDirectory(album models.PhotoAlbum) string {
 	albumDir := filepath.Join(OutputDir, fmt.Sprintf(OutputAlbumDir, album.ID))
 	_ = os.MkdirAll(albumDir, 0750)
-	_ = SaveFile(albumDir, "album_info.txt", fmt.Appendf(nil, "Title: %s\nDescription: %s\nID: %d\n", album.Title, album.Description, album.ID))
+	_ = SaveFile(
+		albumDir,
+		"album_info.txt",
+		fmt.Appendf(
+			nil,
+			"Title: %s\nDescription: %s\nID: %d\n",
+			album.Title,
+			album.Description,
+			album.ID,
+		),
+	)
 	return albumDir
 }
 
@@ -42,11 +51,11 @@ func SaveFile(parentDir, filename string, content []byte) error {
 
 func SaveObject(parentDir, filename string, content io.ReadCloser) error {
 	filePath := filepath.Join(parentDir, filename)
-	out, err := os.Create(filePath)
+	out, err := os.Create(filePath) //nolint:gosec // filePath is from controlled inputs
 	if err != nil {
 		return err
 	}
-	defer out.Close()
+	defer out.Close() //nolint:errcheck
 
 	_, err = io.Copy(out, content)
 	return err
