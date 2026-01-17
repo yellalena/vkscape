@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/yellalena/vkscape/internal/logger"
+	"github.com/yellalena/vkscape/internal/output"
 )
 
 var albumDownloadCmd = &cobra.Command{
@@ -14,7 +14,11 @@ var albumDownloadCmd = &cobra.Command{
 	Long:  "Download photos from albums by their IDs",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		logger := logger.InitLogger()
+		verbose, _ := cmd.Flags().GetBool("verbose")
+		logger, logFile := output.InitLogger(verbose)
+		if logFile != nil {
+			defer logFile.Close()
+		}
 
 		ids, err := cmd.Flags().GetString("ids")
 		if err != nil {
@@ -46,5 +50,6 @@ var albumDownloadCmd = &cobra.Command{
 func init() {
 	albumDownloadCmd.Flags().StringP("ids", "", "", "Comma-separated list of group IDs to download posts from")
 	albumDownloadCmd.Flags().StringP("owner", "", "", "ID of the user to download albums from")
+	albumDownloadCmd.Flags().BoolP("verbose", "v", false, "Enable verbose logging (output to both file and console)")
 	rootCmd.AddCommand(albumDownloadCmd)
 }

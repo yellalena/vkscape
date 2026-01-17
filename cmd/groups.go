@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/yellalena/vkscape/internal/logger"
+	"github.com/yellalena/vkscape/internal/output"
 )
 
 var groupDownloadCmd = &cobra.Command{
@@ -13,7 +13,11 @@ var groupDownloadCmd = &cobra.Command{
 	Long:  "Download posts from groups by their IDs",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		logger := logger.InitLogger()
+		verbose, _ := cmd.Flags().GetBool("verbose")
+		logger, logFile := output.InitLogger(verbose)
+		if logFile != nil {
+			defer logFile.Close()
+		}
 
 		ids, err := cmd.Flags().GetString("ids")
 		if err != nil {
@@ -36,5 +40,6 @@ var groupDownloadCmd = &cobra.Command{
 
 func init() {
 	groupDownloadCmd.Flags().StringP("ids", "", "", "Comma-separated list of group IDs to download posts from")
+	groupDownloadCmd.Flags().BoolP("verbose", "v", false, "Enable verbose logging (output to both file and console)")
 	rootCmd.AddCommand(groupDownloadCmd)
 }
