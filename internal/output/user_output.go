@@ -17,9 +17,9 @@ func Info(msg string) {
 }
 
 func Error(msg string) {
-	_, _ = fmt.Fprintln(out, "❌ "+msg)
+	_, _ = fmt.Fprintln(out, msg)
 }
 
 func Success(msg string) {
-	_, _ = fmt.Fprintln(out, "✅ "+msg)
+	_, _ = fmt.Fprintln(out, msg)
 }

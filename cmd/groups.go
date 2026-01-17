@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -21,20 +22,24 @@ var groupDownloadCmd = &cobra.Command{
 
 		ids, err := cmd.Flags().GetString("ids")
 		if err != nil {
+			output.Error(fmt.Sprintf("Error getting ids flag: %v", err))
 			logger.Error("Error getting ids flag", "error", err)
 			return
 		}
 		if ids == "" {
-			logger.Error("Please provide at least one group ID using --ids flag")
+			output.Error("Please provide at least one group ID using --ids flag")
 			return
 		}
 		idList := strings.Split(ids, ",")
 
+		output.Info(fmt.Sprintf("Starting download for %d group(s)...", len(idList)))
 		err = DownloadGroups(idList, logger)
 		if err != nil {
+			output.Error(fmt.Sprintf("Failed to download groups: %v", err))
 			logger.Error("Error downloading groups", "error", err)
 			return
 		}
+		output.Success(fmt.Sprintf("Successfully downloaded posts from %d group(s)", len(idList)))
 	},
 }
 

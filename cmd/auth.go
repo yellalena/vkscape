@@ -23,17 +23,19 @@ var authCmd = &cobra.Command{
 		}
 
 		if tokenFlag == "" && !userFlag {
-			logger.Error("Please provide either --token or --user flag")
+			output.Error("Please provide either --token or --user flag")
 			return
 		}
 
 		if userFlag {
+			output.Info("Starting interactive authentication...")
 			InteractiveAuth(logger)
 		} else {
+			output.Info("Authenticating with app token...")
 			AppTokenAuth(tokenFlag, logger)
 		}
 
-		logger.Info("Authentication successful, you can now use other commands.")
+		output.Success("Authentication successful! You can now use other commands.")
 	},
 }
 
