@@ -59,10 +59,13 @@ var albumDownloadCmd = &cobra.Command{
 			return
 		}
 
-		idList := strings.Split(ids, ",")
-		// Trim whitespace from each ID
-		for i := range idList {
-			idList[i] = strings.TrimSpace(idList[i])
+		var idList []string
+		if ids != "" {
+			idList := strings.Split(ids, ",")
+			// Trim whitespace from each ID
+			for i := range idList {
+				idList[i] = strings.TrimSpace(idList[i])
+			}
 		}
 
 		output.Info(fmt.Sprintf("Starting download for owner %d...", ownerID))
