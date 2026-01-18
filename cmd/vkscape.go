@@ -28,7 +28,7 @@ func DownloadGroups(groupIDs []string, logger *slog.Logger) error {
 			return fmt.Errorf("failed to create directory for group %s: %w", groupID, err)
 		}
 		logger.Info("Created directory", "group_id", groupID, "dir", groupDir)
-		posts, err := svc.Client.GetPosts(groupID, 5) // todo: remove limit
+		posts, err := svc.Client.GetPosts(groupID)
 		if err != nil {
 			output.Error(fmt.Sprintf("Failed to fetch posts for group %s: %v", groupID, err))
 			return fmt.Errorf("failed to get posts for group %s: %w", groupID, err)
@@ -47,26 +47,30 @@ func DownloadGroups(groupIDs []string, logger *slog.Logger) error {
 func DownloadAlbums(ownerID int, albumIDs []string, logger *slog.Logger) {
 	svc := vkscape.InitService(logger)
 	output.Info(fmt.Sprintf("Processing albums for owner %d...", ownerID))
-	var albums []models.PhotoAlbum
 
+	output.Info("Fetching available album list from VK...")
+	vkAlbums := svc.Client.GetAlbums(ownerID)
+	allAlbums := models.VkAlbumsToPhotoAlbums(vkAlbums)
+	output.Info(fmt.Sprintf("  Found %d album(s)", len(allAlbums)))
+	logger.Info("Found albums", "owner_id", ownerID, "count", len(allAlbums))
+
+	var albums []models.PhotoAlbum
 	if len(albumIDs) == 0 {
-		// Not usable yet due to lack of permissions from VK side
-		output.Info("Fetching album list from VK...")
-		vkAlbums := svc.Client.GetAlbums(ownerID)
-		albums = models.VkAlbumsToPhotoAlbums(vkAlbums)
-		output.Info(fmt.Sprintf("  Found %d album(s)", len(albums)))
-		logger.Info("Found albums", "owner_id", ownerID, "count", len(albums))
+		// Use all albums
+		albums = allAlbums
 	} else {
-		albums = models.AlbumIDsToPhotoAlbums(albumIDs)
-		output.Info(fmt.Sprintf("Using %d provided album(s)", len(albumIDs)))
+		// Filter to only requested albums
+		albums = models.FilterAlbumsByIDs(albumIDs, allAlbums)
 		logger.Info(
 			"Using provided albums",
 			"owner_id",
 			ownerID,
 			"count",
-			len(albumIDs),
-		) // todo maybe get album info from VK
+			len(albums),
+		)
 	}
+	
+	output.Info(fmt.Sprintf("Downloading %d album(s)", len(albums)))
 
 	for _, album := range albums {
 		albumTitle := album.Title

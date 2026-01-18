@@ -37,3 +37,24 @@ func AlbumIDsToPhotoAlbums(albumIDs []string) []PhotoAlbum {
 
 	return albums
 }
+
+func FilterAlbumsByIDs(albumIDs []string, allAlbums []PhotoAlbum) []PhotoAlbum {
+	// Create a set of requested IDs for quick lookup
+	requestedIDs := make(map[int]bool)
+	for _, idStr := range albumIDs {
+		idInt, err := strconv.Atoi(idStr)
+		if err != nil {
+			continue
+		}
+		requestedIDs[idInt] = true
+	}
+
+	albums := make([]PhotoAlbum, 0, len(albumIDs))
+	for _, album := range allAlbums {
+		if requestedIDs[album.ID] {
+			albums = append(albums, album)
+		}
+	}
+
+	return albums
+}
