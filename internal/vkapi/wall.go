@@ -5,17 +5,30 @@ import (
 	vkObject "github.com/SevereCloud/vksdk/v2/object"
 )
 
-func (VK *VKClient) GetPosts(groupID string, count int) ([]vkObject.WallWallpost, error) {
-	res, err := VK.Client.WallGet(api.Params{
-		"owner_id": groupID,
-		"count":    count,
-	})
+func (VK *VKClient) GetPosts(groupID string) ([]vkObject.WallWallpost, error) {
+	var allPosts []vkObject.WallWallpost
+	offset := 0
+	count := 100 // VK API max per request
 
-	if err != nil {
-		return nil, err
+	for {
+		res, err := VK.Client.WallGet(api.Params{
+			"owner_id": groupID,
+			"count":    count,
+			"offset":   offset,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		allPosts = append(allPosts, res.Items...)
+
+		if len(res.Items) < count {
+			break
+		}
+		offset += count
 	}
 
-	return res.Items, nil
+	return allPosts, nil
 }
 
 func (VK *VKClient) GetWallPostByID(postID string) vkObject.WallWallpost {
