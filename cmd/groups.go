@@ -11,7 +11,7 @@ import (
 var groupDownloadCmd = &cobra.Command{
 	Use:   "groups",
 	Short: "Download posts from groups",
-	Long:  "Download posts from groups by their IDs",
+	Long:  "Download posts from groups by their IDs (keep in mind that group IDs must be negative numbers - or literal handlers).",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		verbose, _ := cmd.Flags().GetBool("verbose")

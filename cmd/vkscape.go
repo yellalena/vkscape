@@ -13,13 +13,9 @@ import (
 	"github.com/yellalena/vkscape/internal/vkscape"
 )
 
-// todo improve logging
-
 func DownloadGroups(groupIDs []string, logger *slog.Logger) error {
 	svc := vkscape.InitService(logger)
 	output.Info(fmt.Sprintf("Processing %d group(s)...", len(groupIDs)))
-	// todo: add some check for groupID format - number should be negative
-	// maybe separate command for parsin profile, but reusing same GetPosts method
 	for _, groupID := range groupIDs {
 		output.Info(fmt.Sprintf("📥 Downloading group: %s", groupID))
 		groupDir, err := utils.CreateGroupDirectory(groupID)
