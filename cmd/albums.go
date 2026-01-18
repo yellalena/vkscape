@@ -82,7 +82,7 @@ func init() {
 		StringP("ids", "", "", "Comma-separated list of album IDs to download (optional). If not provided, all albums will be downloaded (requires service token).")
 	albumDownloadCmd.Flags().
 		StringP("owner", "", "", "ID of the user/owner to download albums from (required)")
-	albumDownloadCmd.MarkFlagRequired("owner")
+	albumDownloadCmd.MarkFlagRequired("owner") //nolint:errcheck,gosec
 	albumDownloadCmd.Flags().
 		BoolP("verbose", "v", false, "Enable verbose logging (output to both file and console)")
 	rootCmd.AddCommand(albumDownloadCmd)

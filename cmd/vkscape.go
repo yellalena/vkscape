@@ -69,7 +69,7 @@ func DownloadAlbums(ownerID int, albumIDs []string, logger *slog.Logger) {
 			len(albums),
 		)
 	}
-	
+
 	output.Info(fmt.Sprintf("Downloading %d album(s)", len(albums)))
 
 	for _, album := range albums {
@@ -87,7 +87,9 @@ func DownloadAlbums(ownerID int, albumIDs []string, logger *slog.Logger) {
 	}
 
 	svc.Wg.Wait()
-	output.Success(fmt.Sprintf("✅ Completed downloading %d album(s) for owner %d", len(albums), ownerID))
+	output.Success(
+		fmt.Sprintf("✅ Completed downloading %d album(s) for owner %d", len(albums), ownerID),
+	)
 }
 
 func InteractiveAuth(logger *slog.Logger) {
