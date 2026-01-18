@@ -1,10 +1,12 @@
 package vkscape
 
 import (
+	"fmt"
 	"log/slog"
 	"sync"
 
 	"github.com/yellalena/vkscape/internal/config"
+	"github.com/yellalena/vkscape/internal/output"
 	"github.com/yellalena/vkscape/internal/parser"
 	"github.com/yellalena/vkscape/internal/vkapi"
 )
@@ -18,6 +20,8 @@ type VkScapeService struct {
 func InitService(logger *slog.Logger) *VkScapeService {
 	cfg, err := config.LoadConfig()
 	if err != nil {
+		output.Error(fmt.Sprintf("Failed to load configuration: %v", err))
+		output.Error("Please authenticate first using 'vkscape auth'")
 		logger.Error("Failed to load config", "error", err)
 		panic("failed to load config: " + err.Error())
 	}

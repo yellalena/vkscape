@@ -12,8 +12,21 @@ import (
 var albumDownloadCmd = &cobra.Command{
 	Use:   "albums",
 	Short: "Download photos from albums",
-	Long:  "Download photos from albums by their IDs",
-	Args:  cobra.NoArgs,
+	Long: `Download photos from albums by their IDs or all albums for an owner.
+
+		Privacy and Authentication Requirements:
+		- With user token (--user): Only downloading specific albums by IDs is available.
+			Albums must have public privacy settings.
+		- With service token (--token): Downloading all albums by owner ID is available,
+			but the profile must be open/public for everyone on the internet.
+
+		Examples:
+		# Download specific albums (works with both token types)
+		vkscape albums --owner 123456 --ids 789,790
+
+		# Download all albums (only works with service token, profile must be public)
+		vkscape albums --owner 123456`,
+	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		verbose, _ := cmd.Flags().GetBool("verbose")
 		logger, logFile := output.InitLogger(verbose)
@@ -34,24 +47,31 @@ var albumDownloadCmd = &cobra.Command{
 			return
 		}
 
-		if ids == "" || owner == "" {
-			output.Error("Please specify both owner ID using --owner flag and at least one album ID using --ids flag")
+		// Owner ID is required
+		if owner == "" {
+			output.Error("Please specify owner ID using --owner flag")
 			return
 		}
 
 		ownerID, err := strconv.Atoi(owner)
-		if err != nil && owner != "" {
+		if err != nil {
 			output.Error("Error: owner ID must be an integer")
 			return
 		}
 
 		idList := strings.Split(ids, ",")
+		// Trim whitespace from each ID
+		for i := range idList {
+			idList[i] = strings.TrimSpace(idList[i])
+		}
+
 		output.Info(fmt.Sprintf("Starting download for owner %d...", ownerID))
 		if len(idList) > 0 {
 			output.Info(fmt.Sprintf("Downloading %d album(s)...", len(idList)))
 		} else {
 			output.Info("Fetching all albums for owner...")
 		}
+
 		DownloadAlbums(ownerID, idList, logger)
 		output.Success(fmt.Sprintf("Successfully downloaded albums for owner %d", ownerID))
 	},
@@ -59,8 +79,10 @@ var albumDownloadCmd = &cobra.Command{
 
 func init() {
 	albumDownloadCmd.Flags().
-		StringP("ids", "", "", "Comma-separated list of group IDs to download posts from")
-	albumDownloadCmd.Flags().StringP("owner", "", "", "ID of the user to download albums from")
+		StringP("ids", "", "", "Comma-separated list of album IDs to download (optional). If not provided, all albums will be downloaded (requires service token).")
+	albumDownloadCmd.Flags().
+		StringP("owner", "", "", "ID of the user/owner to download albums from (required)")
+	albumDownloadCmd.MarkFlagRequired("owner")
 	albumDownloadCmd.Flags().
 		BoolP("verbose", "v", false, "Enable verbose logging (output to both file and console)")
 	rootCmd.AddCommand(albumDownloadCmd)
