@@ -9,6 +9,7 @@ import (
 	"github.com/yellalena/vkscape/internal/config"
 	"github.com/yellalena/vkscape/internal/models"
 	"github.com/yellalena/vkscape/internal/output"
+	"github.com/yellalena/vkscape/internal/progress"
 	"github.com/yellalena/vkscape/internal/utils"
 	"github.com/yellalena/vkscape/internal/vkscape"
 )
@@ -40,7 +41,7 @@ func DownloadGroups(groupIDs []string, logger *slog.Logger) error {
 	return nil
 }
 
-func DownloadAlbums(ownerID int, albumIDs []string, logger *slog.Logger) {
+func DownloadAlbums(ownerID int, albumIDs []string, logger *slog.Logger, reporter progress.Reporter) {
 	svc := vkscape.InitService(logger)
 	output.Info(fmt.Sprintf("Processing albums for owner %d...", ownerID))
 
@@ -49,6 +50,7 @@ func DownloadAlbums(ownerID int, albumIDs []string, logger *slog.Logger) {
 	allAlbums := models.VkAlbumsToPhotoAlbums(vkAlbums)
 	output.Info(fmt.Sprintf("  Found %d album(s)", len(allAlbums)))
 	logger.Info("Found albums", "owner_id", ownerID, "count", len(allAlbums))
+	reporter.Start(len(allAlbums))
 
 	var albums []models.PhotoAlbum
 	if len(albumIDs) == 0 {
@@ -73,6 +75,7 @@ func DownloadAlbums(ownerID int, albumIDs []string, logger *slog.Logger) {
 		if albumTitle == "" {
 			albumTitle = fmt.Sprintf("Album %d", album.ID)
 		}
+		reporter.SetStatus(fmt.Sprintf("Downloading album %d", album.ID))
 		output.Info(fmt.Sprintf("📷 Downloading album: %s (ID: %d)", albumTitle, album.ID))
 		albumDir := utils.CreateAlbumDirectory(album)
 		logger.Info("Created album directory", "album_id", album.ID, "dir", albumDir)
@@ -80,12 +83,15 @@ func DownloadAlbums(ownerID int, albumIDs []string, logger *slog.Logger) {
 		output.Info(fmt.Sprintf("  Found %d photo(s) in album '%s'", len(photos), albumTitle))
 		logger.Info("Found photos", "album_id", album.ID, "count", len(photos))
 		svc.Parser.ParseAlbumPhotos(&svc.Wg, albumDir, strconv.Itoa(album.ID), photos)
+
+		svc.Wg.Wait()
+		reporter.Increment()
 	}
 
-	svc.Wg.Wait()
 	output.Success(
 		fmt.Sprintf("✅ Completed downloading %d album(s) for owner %d", len(albums), ownerID),
 	)
+	reporter.Done()
 }
 
 func InteractiveAuth(logger *slog.Logger) {
