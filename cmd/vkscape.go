@@ -86,6 +86,10 @@ func DownloadAlbums(ownerID int, albumIDs []string, logger *slog.Logger, reporte
 
 		svc.Wg.Wait()
 		reporter.Increment()
+		errCount := svc.Parser.CloseErrorsAndCount()
+		if errCount > 0 {
+			reporter.SetStatus(fmt.Sprintf("Completed with %d errors", errCount))
+		}
 	}
 
 	output.Success(

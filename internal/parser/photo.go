@@ -12,16 +12,20 @@ func (p *VKParser) ParseAlbumPhotos(
 	outputDir, albumID string,
 	photos []vkObject.PhotosPhoto,
 ) {
+	p.errs = make(chan error, len(photos))
 	for _, photo := range photos {
 		wg.Add(1)
 		go func(photo vkObject.PhotosPhoto) {
 			defer wg.Done()
-			p.processPhoto(outputDir, albumID, photo)
+			err := p.processPhoto(outputDir, albumID, photo)
+			if err != nil {
+				p.errs <- err
+			}
 		}(photo)
 	}
 }
 
-func (p *VKParser) processPhoto(outputDir, albumID string, photo vkObject.PhotosPhoto) {
+func (p *VKParser) processPhoto(outputDir, albumID string, photo vkObject.PhotosPhoto) error {
 	filename := fmt.Sprintf(ImageFileNameTemplate, albumID, photo.ID)
 	err := downloadImage(photo.Sizes[len(photo.Sizes)-1].URL, outputDir, filename+".jpg")
 	if err != nil {
@@ -36,5 +40,7 @@ func (p *VKParser) processPhoto(outputDir, albumID string, photo vkObject.Photos
 			"url",
 			photo.Sizes[len(photo.Sizes)-1].URL,
 		)
+		return err
 	}
+	return nil
 }

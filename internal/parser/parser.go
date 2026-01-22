@@ -16,12 +16,18 @@ const (
 
 type VKParser struct {
 	logger *slog.Logger
+	errs   chan error
 }
 
 func InitParser(logger *slog.Logger) VKParser {
 	return VKParser{
 		logger: logger,
 	}
+}
+
+func (p *VKParser) CloseErrorsAndCount() int {
+	close(p.errs)
+	return len(p.errs)
 }
 
 func convertDate(timestamp int) string {
