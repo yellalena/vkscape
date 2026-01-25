@@ -1,4 +1,4 @@
-package cmd
+package vkscape
 
 import (
 	"fmt"
@@ -11,11 +11,10 @@ import (
 	"github.com/yellalena/vkscape/internal/output"
 	"github.com/yellalena/vkscape/internal/progress"
 	"github.com/yellalena/vkscape/internal/utils"
-	"github.com/yellalena/vkscape/internal/vkscape"
 )
 
 func DownloadGroups(groupIDs []string, logger *slog.Logger) error {
-	svc := vkscape.InitService(logger)
+	svc := InitService(logger)
 	output.Info(fmt.Sprintf("Processing %d group(s)...", len(groupIDs)))
 	for _, groupID := range groupIDs {
 		output.Info(fmt.Sprintf("📥 Downloading group: %s", groupID))
@@ -42,7 +41,7 @@ func DownloadGroups(groupIDs []string, logger *slog.Logger) error {
 }
 
 func DownloadAlbums(ownerID int, albumIDs []string, logger *slog.Logger, reporter progress.Reporter) {
-	svc := vkscape.InitService(logger)
+	svc := InitService(logger)
 	output.Info(fmt.Sprintf("Processing albums for owner %d...", ownerID))
 
 	output.Info("Fetching available album list from VK...")

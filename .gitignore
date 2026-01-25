@@ -27,5 +27,4 @@ go.work.sum
 .DS_Store
 .vscode/
 
-vkscape
 vkscape_output/

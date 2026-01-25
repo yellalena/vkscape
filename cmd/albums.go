@@ -8,6 +8,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/yellalena/vkscape/internal/output"
 	"github.com/yellalena/vkscape/internal/progress"
+
+	"github.com/yellalena/vkscape/internal/vkscape"
 )
 
 var albumDownloadCmd = &cobra.Command{
@@ -76,7 +78,7 @@ var albumDownloadCmd = &cobra.Command{
 			output.Info("Fetching all albums for owner...")
 		}
 
-		DownloadAlbums(ownerID, idList, logger, &progress.NoopReporter{})
+		vkscape.DownloadAlbums(ownerID, idList, logger, &progress.NoopReporter{})
 		output.Success(fmt.Sprintf("Successfully downloaded albums for owner %d", ownerID))
 	},
 }

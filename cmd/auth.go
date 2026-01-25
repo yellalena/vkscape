@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 	"github.com/yellalena/vkscape/internal/output"
+	"github.com/yellalena/vkscape/internal/vkscape"
 )
 
 var (
@@ -29,10 +30,10 @@ var authCmd = &cobra.Command{
 
 		if userFlag {
 			output.Info("Starting interactive authentication...")
-			InteractiveAuth(logger)
+			vkscape.InteractiveAuth(logger)
 		} else {
 			output.Info("Authenticating with app token...")
-			AppTokenAuth(tokenFlag, logger)
+			vkscape.AppTokenAuth(tokenFlag, logger)
 		}
 
 		output.Success("Authentication successful! You can now use other commands.")

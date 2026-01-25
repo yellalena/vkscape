@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/yellalena/vkscape/internal/output"
+	"github.com/yellalena/vkscape/internal/vkscape"
 )
 
 var groupDownloadCmd = &cobra.Command{
@@ -33,7 +34,7 @@ var groupDownloadCmd = &cobra.Command{
 		idList := strings.Split(ids, ",")
 
 		output.Info(fmt.Sprintf("Starting download for %d group(s)...", len(idList)))
-		err = DownloadGroups(idList, logger)
+		err = vkscape.DownloadGroups(idList, logger)
 		if err != nil {
 			output.Error(fmt.Sprintf("Failed to download groups: %v", err))
 			logger.Error("Error downloading groups", "error", err)
