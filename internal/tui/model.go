@@ -107,6 +107,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = stateAlbumOwnerInput
 				m.errMsg = ""
 				m.downloadDone = false
+				m.clearLogs()
 				m.input.SetValue("")
 				m.input.Placeholder = "Owner ID"
 				m.input.Focus()
@@ -164,6 +165,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case stateAlbumDownload:
 		if key, ok := msg.(tea.KeyMsg); ok && key.String() == "esc" {
 			m.state = stateMenu
+			m.clearLogs()
 		}
 	}
 
@@ -241,6 +243,10 @@ func (m *model) addLog(line string) {
 	if len(m.logs) > maxLogLines {
 		m.logs = m.logs[len(m.logs)-maxLogLines:]
 	}
+}
+
+func (m *model) clearLogs() {
+	m.logs = nil
 }
 
 func (m *model) renderDownloadView(content string) string {
