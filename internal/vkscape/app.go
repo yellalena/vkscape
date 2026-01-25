@@ -47,7 +47,7 @@ func DownloadAlbums(ownerID int, albumIDs []string, logger *slog.Logger, reporte
 	output.Info("Fetching available album list from VK...")
 	vkAlbums := svc.Client.GetAlbums(ownerID)
 	allAlbums := models.VkAlbumsToPhotoAlbums(vkAlbums)
-	output.Info(fmt.Sprintf("  Found %d album(s)", len(allAlbums)))
+	output.Info(fmt.Sprintf("Found %d album(s)", len(allAlbums)))
 	logger.Info("Found albums", "owner_id", ownerID, "count", len(allAlbums))
 	reporter.Start(len(allAlbums))
 
@@ -65,6 +65,12 @@ func DownloadAlbums(ownerID int, albumIDs []string, logger *slog.Logger, reporte
 			"count",
 			len(albums),
 		)
+	}
+
+	if len(albums) == 0 {
+		output.Info("No albums to download. Exiting.")
+		reporter.Done()
+		return
 	}
 
 	output.Info(fmt.Sprintf("Downloading %d album(s)", len(albums)))

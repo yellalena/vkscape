@@ -7,6 +7,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/yellalena/vkscape/internal/output"
@@ -30,14 +31,15 @@ type model struct {
 	menu  list.Model
 	input textinput.Model
 
+	logs  []string
+	logsV viewport.Model
+
 	ownerID  string
 	albumIDs string
 
 	errMsg string
 
 	downloadDone bool
-
-	width int
 }
 
 func initialModel() model {
@@ -63,6 +65,7 @@ func initialModel() model {
 		state: stateMenu,
 		menu:  l,
 		input: ti,
+		logsV: viewport.New(0, 0),
 	}
 }
 
@@ -76,9 +79,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.menu.SetSize(msg.Width, msg.Height)
-		m.width = msg.Width
+		m.setLogsSize(msg.Width, msg.Height)
 	case downloadAlbumsDoneMsg:
 		m.downloadDone = true
+	case logMsg:
+		m.addLog(string(msg))
 	}
 
 	switch m.state {
@@ -140,6 +145,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case stateAlbumDownload:
+		m.logsV, cmd = m.logsV.Update(msg)
 		if key, ok := msg.(tea.KeyMsg); ok && key.String() == "esc" {
 			m.state = stateMenu
 		}
@@ -185,7 +191,11 @@ func (m model) View() string {
 		if m.downloadDone {
 			content = "Download complete.\n\n(esc to return to menu)"
 		}
-		return lipgloss.NewStyle().Align(lipgloss.Left).Width(m.width).Render(content)
+		if m.logsV.Width == 0 {
+			m.setLogsSize(80, 24)
+		}
+		logsStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
+		return content + "\n\n" + logsStyle.Render(m.logsV.View())
 	}
 
 	return ""
@@ -203,4 +213,25 @@ func downloadAlbumsCmd(ownerID int, albumIDs []string) tea.Cmd {
 		vkscape.DownloadAlbums(ownerID, albumIDs, logger, &progress.NoopReporter{})
 		return downloadAlbumsDoneMsg{}
 	}
+}
+
+const maxLogLines = 500
+
+func (m *model) setLogsSize(width, height int) {
+	const headerLines = 4
+	logHeight := height - headerLines
+	if logHeight < 1 {
+		logHeight = 1
+	}
+	m.logsV.Width = width
+	m.logsV.Height = logHeight
+}
+
+func (m *model) addLog(line string) {
+	m.logs = append(m.logs, line)
+	if len(m.logs) > maxLogLines {
+		m.logs = m.logs[len(m.logs)-maxLogLines:]
+	}
+	m.logsV.SetContent(strings.Join(m.logs, "\n"))
+	m.logsV.GotoBottom()
 }
