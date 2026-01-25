@@ -3,11 +3,11 @@ package cmd
 import (
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/yellalena/vkscape/internal/output"
 	"github.com/yellalena/vkscape/internal/progress"
+	"github.com/yellalena/vkscape/internal/utils"
 
 	"github.com/yellalena/vkscape/internal/vkscape"
 )
@@ -64,11 +64,7 @@ var albumDownloadCmd = &cobra.Command{
 
 		var idList []string
 		if ids != "" {
-			idList := strings.Split(ids, ",")
-			// Trim whitespace from each ID
-			for i := range idList {
-				idList[i] = strings.TrimSpace(idList[i])
-			}
+			idList = utils.ParseIDList(ids)
 		}
 
 		output.Info(fmt.Sprintf("Starting download for owner %d...", ownerID))

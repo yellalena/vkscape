@@ -2,10 +2,17 @@ package tui
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/yellalena/vkscape/internal/output"
+	"github.com/yellalena/vkscape/internal/progress"
+	"github.com/yellalena/vkscape/internal/utils"
+	"github.com/yellalena/vkscape/internal/vkscape"
 )
 
 type state int
@@ -14,6 +21,7 @@ const (
 	stateMenu state = iota
 	stateAlbumOwnerInput
 	stateAlbumIDsInput
+	stateAlbumDownload
 )
 
 type model struct {
@@ -24,6 +32,12 @@ type model struct {
 
 	ownerID  string
 	albumIDs string
+
+	errMsg string
+
+	downloadDone bool
+
+	width int
 }
 
 func initialModel() model {
@@ -62,6 +76,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.menu.SetSize(msg.Width, msg.Height)
+		m.width = msg.Width
+	case downloadAlbumsDoneMsg:
+		m.downloadDone = true
 	}
 
 	switch m.state {
@@ -73,6 +90,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch m.menu.SelectedItem().(menuItem) {
 			case "Download albums":
 				m.state = stateAlbumOwnerInput
+				m.errMsg = ""
+				m.downloadDone = false
 				m.input.SetValue("")
 				m.input.Placeholder = "Owner ID"
 				m.input.Focus()
@@ -89,6 +108,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "enter":
 				m.ownerID = m.input.Value()
 				m.state = stateAlbumIDsInput
+				m.errMsg = ""
 				m.input.SetValue("")
 				m.input.Placeholder = "Album IDs (empty = all)"
 				m.input.Focus()
@@ -104,10 +124,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch key.String() {
 			case "enter":
 				m.albumIDs = m.input.Value()
-				// next state will be spinner → download later
+				ownerID, err := strconv.Atoi(strings.TrimSpace(m.ownerID))
+				if err != nil {
+					m.errMsg = "Owner ID must be an integer"
+					return m, nil
+				}
+
+				idList := utils.ParseIDList(m.albumIDs)
+				m.state = stateAlbumDownload
+				m.errMsg = ""
+				return m, downloadAlbumsCmd(ownerID, idList)
 			case "esc":
 				m.state = stateMenu
 			}
+		}
+
+	case stateAlbumDownload:
+		if key, ok := msg.(tea.KeyMsg); ok && key.String() == "esc" {
+			m.state = stateMenu
 		}
 	}
 
@@ -121,17 +155,52 @@ func (m model) View() string {
 		return m.menu.View()
 
 	case stateAlbumOwnerInput:
+		if m.errMsg != "" {
+			return fmt.Sprintf(
+				"Enter owner ID:\n\n%s\n\nError: %s\n\n(esc to cancel)",
+				m.input.View(),
+				m.errMsg,
+			)
+		}
 		return fmt.Sprintf(
 			"Enter owner ID:\n\n%s\n\n(esc to cancel)",
 			m.input.View(),
 		)
 
 	case stateAlbumIDsInput:
+		if m.errMsg != "" {
+			return fmt.Sprintf(
+				"Enter album IDs (comma or space separated).\nLeave empty for all:\n\n%s\n\nError: %s\n\n(esc to cancel)",
+				m.input.View(),
+				m.errMsg,
+			)
+		}
 		return fmt.Sprintf(
 			"Enter album IDs (comma or space separated).\nLeave empty for all:\n\n%s\n\n(esc to cancel)",
 			m.input.View(),
 		)
+
+	case stateAlbumDownload:
+		content := "Downloading albums...\n\nPlease wait.\n\n(esc to cancel view)"
+		if m.downloadDone {
+			content = "Download complete.\n\n(esc to return to menu)"
+		}
+		return lipgloss.NewStyle().Align(lipgloss.Left).Width(m.width).Render(content)
 	}
 
 	return ""
+}
+
+type downloadAlbumsDoneMsg struct{}
+
+func downloadAlbumsCmd(ownerID int, albumIDs []string) tea.Cmd {
+	return func() tea.Msg {
+		logger, logFile := output.InitLogger(false)
+		if logFile != nil {
+			defer logFile.Close() //nolint:errcheck
+		}
+
+		vkscape.DownloadAlbums(ownerID, albumIDs, logger, &progress.NoopReporter{})
+		return downloadAlbumsDoneMsg{}
+	}
 }
