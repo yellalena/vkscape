@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/yellalena/vkscape/internal/output"
@@ -31,8 +31,8 @@ type model struct {
 	menu  list.Model
 	input textinput.Model
 
-	logs  []string
-	logsV viewport.Model
+	logs []string
+	spin spinner.Model
 
 	ownerID  string
 	albumIDs string
@@ -61,12 +61,14 @@ func initialModel() model {
 	ti.CharLimit = 50
 	ti.Width = 30
 
-	return model{
+	m := model{
 		state: stateMenu,
 		menu:  l,
 		input: ti,
-		logsV: viewport.New(0, 0),
 	}
+	m.resetSpinner()
+
+	return m
 }
 
 func (m model) Init() tea.Cmd {
@@ -75,21 +77,29 @@ func (m model) Init() tea.Cmd {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
+	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.menu.SetSize(msg.Width, msg.Height)
-		m.setLogsSize(msg.Width, msg.Height)
 	case downloadAlbumsDoneMsg:
 		m.downloadDone = true
 	case logMsg:
 		m.addLog(string(msg))
+	case spinner.TickMsg:
+		m.spin, cmd = m.spin.Update(msg)
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
 	}
 
 	switch m.state {
 
 	case stateMenu:
 		m.menu, cmd = m.menu.Update(msg)
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
 
 		if key, ok := msg.(tea.KeyMsg); ok && key.String() == "enter" {
 			switch m.menu.SelectedItem().(menuItem) {
@@ -107,6 +117,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case stateAlbumOwnerInput:
 		m.input, cmd = m.input.Update(msg)
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
 
 		if key, ok := msg.(tea.KeyMsg); ok {
 			switch key.String() {
@@ -124,6 +137,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case stateAlbumIDsInput:
 		m.input, cmd = m.input.Update(msg)
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
 
 		if key, ok := msg.(tea.KeyMsg); ok {
 			switch key.String() {
@@ -138,20 +154,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				idList := utils.ParseIDList(m.albumIDs)
 				m.state = stateAlbumDownload
 				m.errMsg = ""
-				return m, downloadAlbumsCmd(ownerID, idList)
+				m.resetSpinner()
+				return m, tea.Batch(downloadAlbumsCmd(ownerID, idList), m.spin.Tick)
 			case "esc":
 				m.state = stateMenu
 			}
 		}
 
 	case stateAlbumDownload:
-		m.logsV, cmd = m.logsV.Update(msg)
 		if key, ok := msg.(tea.KeyMsg); ok && key.String() == "esc" {
 			m.state = stateMenu
 		}
 	}
 
-	return m, cmd
+	if len(cmds) > 0 {
+		return m, tea.Batch(cmds...)
+	}
+
+	return m, nil
 }
 
 func (m model) View() string {
@@ -188,14 +208,13 @@ func (m model) View() string {
 
 	case stateAlbumDownload:
 		content := "Downloading albums...\n\nPlease wait.\n\n(esc to cancel view)"
+		if !m.downloadDone {
+			content = fmt.Sprintf("%s Downloading albums...\n\nPlease wait.\n\n(esc to cancel view)", m.spin.View())
+		}
 		if m.downloadDone {
 			content = "Download complete.\n\n(esc to return to menu)"
 		}
-		if m.logsV.Width == 0 {
-			m.setLogsSize(80, 24)
-		}
-		logsStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
-		return content + "\n\n" + logsStyle.Render(m.logsV.View())
+		return m.renderDownloadView(content)
 	}
 
 	return ""
@@ -217,21 +236,24 @@ func downloadAlbumsCmd(ownerID int, albumIDs []string) tea.Cmd {
 
 const maxLogLines = 500
 
-func (m *model) setLogsSize(width, height int) {
-	const headerLines = 4
-	logHeight := height - headerLines
-	if logHeight < 1 {
-		logHeight = 1
-	}
-	m.logsV.Width = width
-	m.logsV.Height = logHeight
-}
-
 func (m *model) addLog(line string) {
 	m.logs = append(m.logs, line)
 	if len(m.logs) > maxLogLines {
 		m.logs = m.logs[len(m.logs)-maxLogLines:]
 	}
-	m.logsV.SetContent(strings.Join(m.logs, "\n"))
-	m.logsV.GotoBottom()
+}
+
+func (m *model) renderDownloadView(content string) string {
+	logsStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
+	if len(m.logs) == 0 {
+		return content
+	}
+
+	return content + "\n\n" + logsStyle.Render(strings.Join(m.logs, "\n"))
+}
+
+func (m *model) resetSpinner() {
+	m.spin = spinner.New()
+	m.spin.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("69"))
+	m.spin.Spinner = spinner.Points
 }
