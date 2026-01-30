@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/yellalena/vkscape/internal/output"
-	"github.com/yellalena/vkscape/internal/progress"
 	"github.com/yellalena/vkscape/internal/utils"
 	"github.com/yellalena/vkscape/internal/vkscape"
 )
@@ -33,6 +33,7 @@ type model struct {
 
 	logs []string
 	spin spinner.Model
+	prog progress.Model
 
 	ownerID  string
 	albumIDs string
@@ -40,6 +41,10 @@ type model struct {
 	errMsg string
 
 	downloadDone bool
+
+	progTotal   int
+	progCurrent int
+	progStatus  string
 }
 
 func initialModel() model {
@@ -67,6 +72,7 @@ func initialModel() model {
 		input: ti,
 	}
 	m.resetSpinner()
+	m.resetProgress()
 
 	return m
 }
@@ -84,6 +90,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.menu.SetSize(msg.Width, msg.Height)
 	case downloadAlbumsDoneMsg:
 		m.downloadDone = true
+		m.clearLogs()
+	case progressStartMsg:
+		m.progTotal = msg.total
+	case progressIncMsg:
+		if m.progCurrent < m.progTotal {
+			m.progCurrent++
+		}
+	case progressStatusMsg:
+		m.progStatus = msg.msg
+	case progressDoneMsg:
+		m.progCurrent = m.progTotal
 	case logMsg:
 		m.addLog(string(msg))
 	case spinner.TickMsg:
@@ -156,6 +173,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = stateAlbumDownload
 				m.errMsg = ""
 				m.resetSpinner()
+				m.resetProgress()
 				return m, tea.Batch(downloadAlbumsCmd(ownerID, idList), m.spin.Tick)
 			case "esc":
 				m.state = stateMenu
@@ -213,8 +231,11 @@ func (m model) View() string {
 			content = fmt.Sprintf("%s Downloading albums...\n\nPlease wait.\n\n(esc to cancel view)", m.spin.View())
 		}
 		if m.downloadDone {
-			m.clearLogs()
 			content = "Download complete.\n\n(esc to return to menu)"
+		}
+		progressBlock := m.renderProgress()
+		if progressBlock != "" {
+			content = content + "\n" + progressBlock
 		}
 		return m.renderDownloadView(content)
 	}
@@ -231,7 +252,8 @@ func downloadAlbumsCmd(ownerID int, albumIDs []string) tea.Cmd {
 			defer logFile.Close() //nolint:errcheck
 		}
 
-		vkscape.DownloadAlbums(ownerID, albumIDs, logger, &progress.NoopReporter{})
+		reporter := newTUIProgressReporter(getProgressSender())
+		vkscape.DownloadAlbums(ownerID, albumIDs, logger, reporter)
 		return downloadAlbumsDoneMsg{}
 	}
 }
@@ -270,4 +292,36 @@ func (m *model) resetSpinner() {
 	m.spin = spinner.New()
 	m.spin.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("69"))
 	m.spin.Spinner = spinner.Points
+}
+
+func (m *model) resetProgress() {
+	m.progTotal = 0
+	m.progCurrent = 0
+	m.progStatus = ""
+
+	m.prog = progress.New(
+		progress.WithScaledGradient("#5e61b5", "#c468ac"),
+		progress.WithSpringOptions(100, 2.5),
+		progress.WithWidth(60),
+	)
+}
+
+func (m *model) renderProgress() string {
+	if m.progTotal <= 0 {
+		return ""
+	}
+	percent := float64(m.progCurrent) / float64(m.progTotal)
+	if percent < 0 {
+		percent = 0
+	}
+	if percent > 1 {
+		percent = 1
+	}
+
+	bar := m.prog.ViewAs(percent)
+	if m.progStatus == "" {
+		return bar
+	}
+
+	return bar + "\n" + m.progStatus
 }

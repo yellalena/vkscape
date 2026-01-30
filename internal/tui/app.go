@@ -10,7 +10,9 @@ import (
 func Start() error {
 	p := tea.NewProgram(initialModel())
 	output.SetWriter(newLogWriter(p.Send))
+	setProgressSender(p.Send)
 	defer output.SetWriter(os.Stdout)
+	defer setProgressSender(nil)
 	_, err := p.Run()
 	return err
 }
