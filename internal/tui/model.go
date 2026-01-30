@@ -165,7 +165,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case stateAlbumDownload:
 		if key, ok := msg.(tea.KeyMsg); ok && key.String() == "esc" {
 			m.state = stateMenu
-			m.clearLogs()
 		}
 	}
 
@@ -214,6 +213,7 @@ func (m model) View() string {
 			content = fmt.Sprintf("%s Downloading albums...\n\nPlease wait.\n\n(esc to cancel view)", m.spin.View())
 		}
 		if m.downloadDone {
+			m.clearLogs()
 			content = "Download complete.\n\n(esc to return to menu)"
 		}
 		return m.renderDownloadView(content)
@@ -236,7 +236,10 @@ func downloadAlbumsCmd(ownerID int, albumIDs []string) tea.Cmd {
 	}
 }
 
-const maxLogLines = 500
+const (
+	maxLogLines        = 500
+	maxVisibleLogLines = 15
+)
 
 func (m *model) addLog(line string) {
 	m.logs = append(m.logs, line)
@@ -255,7 +258,12 @@ func (m *model) renderDownloadView(content string) string {
 		return content
 	}
 
-	return content + "\n\n" + logsStyle.Render(strings.Join(m.logs, "\n"))
+	logs := m.logs
+	if len(logs) > maxVisibleLogLines {
+		logs = logs[len(logs)-maxVisibleLogLines:]
+	}
+
+	return content + "\n\n" + logsStyle.Render(strings.Join(logs, "\n"))
 }
 
 func (m *model) resetSpinner() {
