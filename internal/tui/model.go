@@ -11,9 +11,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/yellalena/vkscape/internal/output"
 	"github.com/yellalena/vkscape/internal/utils"
-	"github.com/yellalena/vkscape/internal/vkscape"
 )
 
 type state int
@@ -25,26 +23,33 @@ const (
 	stateAlbumDownload
 )
 
+type userInput struct {
+	ownerID  string
+	albumIDs string
+}
+
+type progressModel struct {
+	prog        progress.Model
+	progTotal   int
+	progCurrent int
+	progStatus  string
+}
+
 type model struct {
 	state state
 
 	menu  list.Model
 	input textinput.Model
 
-	logs []string
-	spin spinner.Model
-	prog progress.Model
+	logs   []string
+	spin   spinner.Model
+	progrs progressModel
 
-	ownerID  string
-	albumIDs string
+	inputValues userInput
 
 	errMsg string
 
 	downloadDone bool
-
-	progTotal   int
-	progCurrent int
-	progStatus  string
 }
 
 func initialModel() model {
@@ -92,15 +97,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.downloadDone = true
 		m.clearLogs()
 	case progressStartMsg:
-		m.progTotal = msg.total
+		m.progrs.progTotal = msg.total
 	case progressIncMsg:
-		if m.progCurrent < m.progTotal {
-			m.progCurrent++
+		if m.progrs.progCurrent < m.progrs.progTotal {
+			m.progrs.progCurrent++
 		}
 	case progressStatusMsg:
-		m.progStatus = msg.msg
+		m.progrs.progStatus = msg.msg
 	case progressDoneMsg:
-		m.progCurrent = m.progTotal
+		m.progrs.progCurrent = m.progrs.progTotal
 	case logMsg:
 		m.addLog(string(msg))
 	case spinner.TickMsg:
@@ -142,7 +147,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key, ok := msg.(tea.KeyMsg); ok {
 			switch key.String() {
 			case "enter":
-				m.ownerID = m.input.Value()
+				m.inputValues.ownerID = m.input.Value()
 				m.state = stateAlbumIDsInput
 				m.errMsg = ""
 				m.input.SetValue("")
@@ -162,14 +167,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key, ok := msg.(tea.KeyMsg); ok {
 			switch key.String() {
 			case "enter":
-				m.albumIDs = m.input.Value()
-				ownerID, err := strconv.Atoi(strings.TrimSpace(m.ownerID))
+				m.inputValues.albumIDs = m.input.Value()
+				ownerID, err := strconv.Atoi(strings.TrimSpace(m.inputValues.ownerID))
 				if err != nil {
 					m.errMsg = "Owner ID must be an integer"
 					return m, nil
 				}
 
-				idList := utils.ParseIDList(m.albumIDs)
+				idList := utils.ParseIDList(m.inputValues.albumIDs)
 				m.state = stateAlbumDownload
 				m.errMsg = ""
 				m.resetSpinner()
@@ -243,21 +248,6 @@ func (m model) View() string {
 	return ""
 }
 
-type downloadAlbumsDoneMsg struct{}
-
-func downloadAlbumsCmd(ownerID int, albumIDs []string) tea.Cmd {
-	return func() tea.Msg {
-		logger, logFile := output.InitLogger(false)
-		if logFile != nil {
-			defer logFile.Close() //nolint:errcheck
-		}
-
-		reporter := newTUIProgressReporter(getProgressSender())
-		vkscape.DownloadAlbums(ownerID, albumIDs, logger, reporter)
-		return downloadAlbumsDoneMsg{}
-	}
-}
-
 const (
 	maxLogLines        = 500
 	maxVisibleLogLines = 15
@@ -295,11 +285,11 @@ func (m *model) resetSpinner() {
 }
 
 func (m *model) resetProgress() {
-	m.progTotal = 0
-	m.progCurrent = 0
-	m.progStatus = ""
+	m.progrs.progTotal = 0
+	m.progrs.progCurrent = 0
+	m.progrs.progStatus = ""
 
-	m.prog = progress.New(
+	m.progrs.prog = progress.New(
 		progress.WithScaledGradient("#5e61b5", "#c468ac"),
 		progress.WithSpringOptions(100, 2.5),
 		progress.WithWidth(60),
@@ -307,10 +297,10 @@ func (m *model) resetProgress() {
 }
 
 func (m *model) renderProgress() string {
-	if m.progTotal <= 0 {
+	if m.progrs.progTotal <= 0 {
 		return ""
 	}
-	percent := float64(m.progCurrent) / float64(m.progTotal)
+	percent := float64(m.progrs.progCurrent) / float64(m.progrs.progTotal)
 	if percent < 0 {
 		percent = 0
 	}
@@ -318,10 +308,10 @@ func (m *model) renderProgress() string {
 		percent = 1
 	}
 
-	bar := m.prog.ViewAs(percent)
-	if m.progStatus == "" {
+	bar := m.progrs.prog.ViewAs(percent)
+	if m.progrs.progStatus == "" {
 		return bar
 	}
 
-	return bar + "\n" + m.progStatus
+	return bar + "\n" + m.progrs.progStatus
 }
