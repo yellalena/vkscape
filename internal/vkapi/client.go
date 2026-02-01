@@ -1,6 +1,7 @@
 package vkapi
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/SevereCloud/vksdk/v2/api"
@@ -11,10 +12,10 @@ type VKClient struct {
 	logger *slog.Logger
 }
 
-func InitClient(token string, logger *slog.Logger) VKClient {
+func InitClient(token string, logger *slog.Logger) (VKClient, error) {
 	if token == "" {
-		logger.Error("VK_API_KEY not found")
-		panic("VK_API_KEY not found")
+		logger.Error("VK Access token not found")
+		return VKClient{}, fmt.Errorf("VK Access token not found")
 	}
 
 	VK := api.NewVK(token)
@@ -23,7 +24,7 @@ func InitClient(token string, logger *slog.Logger) VKClient {
 	return VKClient{
 		Client: VK,
 		logger: logger,
-	}
+	}, nil
 }
 
 func (*VKClient) GetVersion() string {

@@ -74,7 +74,11 @@ var albumDownloadCmd = &cobra.Command{
 			output.Info("Fetching all albums for owner...")
 		}
 
-		vkscape.DownloadAlbums(ownerID, idList, logger, &progress.NoopReporter{})
+		if err := vkscape.DownloadAlbums(ownerID, idList, logger, &progress.NoopReporter{}); err != nil {
+			output.Error(fmt.Sprintf("Failed to download albums: %v", err))
+			logger.Error("Failed to download albums", "error", err)
+			return
+		}
 		output.Success(fmt.Sprintf("Successfully downloaded albums for owner %d", ownerID))
 	},
 }

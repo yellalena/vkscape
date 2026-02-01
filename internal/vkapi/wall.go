@@ -31,19 +31,19 @@ func (VK *VKClient) GetPosts(groupID string) ([]vkObject.WallWallpost, error) {
 	return allPosts, nil
 }
 
-func (VK *VKClient) GetWallPostByID(postID string) vkObject.WallWallpost {
+func (VK *VKClient) GetWallPostByID(postID string) (vkObject.WallWallpost, error) {
 	res, err := VK.Client.WallGetByID(api.Params{
 		"posts": postID,
 	})
 
 	if err != nil {
 		VK.logger.Error("Failed to get wall post by ID", "error", err, "post_id", postID)
-		panic(err)
+		return vkObject.WallWallpost{}, err
 	}
 
 	if len(res) > 0 {
-		return res[0]
+		return res[0], nil
 	}
 
-	return vkObject.WallWallpost{}
+	return vkObject.WallWallpost{}, nil
 }

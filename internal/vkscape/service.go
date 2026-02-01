@@ -17,20 +17,25 @@ type VkScapeService struct {
 	Wg     sync.WaitGroup
 }
 
-func InitService(logger *slog.Logger) *VkScapeService {
+func InitService(logger *slog.Logger) (*VkScapeService, error) {
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		output.Error(fmt.Sprintf("Failed to load configuration: %v", err))
 		output.Error("Please authenticate first using 'vkscape auth'")
 		logger.Error("Failed to load config", "error", err)
-		panic("failed to load config: " + err.Error())
+		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
 
-	client := vkapi.InitClient(cfg.AccessToken, logger)
+	client, err := vkapi.InitClient(cfg.AccessToken, logger)
+	if err != nil {
+		output.Error(fmt.Sprintf("Failed to initialize VK client: %v", err))
+		logger.Error("Failed to initialize VK client", "error", err)
+		return nil, fmt.Errorf("init vk client: %w", err)
+	}
 	parser := parser.InitParser(logger)
 
 	return &VkScapeService{
 		Client: client,
 		Parser: parser,
-	}
+	}, nil
 }

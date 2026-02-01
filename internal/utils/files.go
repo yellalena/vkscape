@@ -21,10 +21,12 @@ func CreateGroupDirectory(groupID string) (string, error) {
 	return groupDir, err
 }
 
-func CreateAlbumDirectory(album models.PhotoAlbum) string {
+func CreateAlbumDirectory(album models.PhotoAlbum) (string, error) {
 	albumDir := filepath.Join(OutputDir, fmt.Sprintf(OutputAlbumDir, album.ID))
-	_ = os.MkdirAll(albumDir, 0750)
-	_ = SaveFile(
+	if err := os.MkdirAll(albumDir, 0750); err != nil {
+		return "", err
+	}
+	if err := SaveFile(
 		albumDir,
 		"album_info.txt",
 		fmt.Appendf(
@@ -34,8 +36,10 @@ func CreateAlbumDirectory(album models.PhotoAlbum) string {
 			album.Description,
 			album.ID,
 		),
-	)
-	return albumDir
+	); err != nil {
+		return "", err
+	}
+	return albumDir, nil
 }
 
 func CreateSubDirectory(parentDir, subDir string) (string, error) {

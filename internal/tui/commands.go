@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"fmt"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/yellalena/vkscape/internal/output"
 	"github.com/yellalena/vkscape/internal/vkscape"
@@ -16,7 +18,9 @@ func downloadAlbumsCmd(ownerID int, albumIDs []string) tea.Cmd {
 		}
 
 		reporter := newTUIProgressReporter(getProgressSender())
-		vkscape.DownloadAlbums(ownerID, albumIDs, logger, reporter)
+		if err := vkscape.DownloadAlbums(ownerID, albumIDs, logger, reporter); err != nil {
+			output.Error(fmt.Sprintf("Failed to download albums: %v", err))
+		}
 		return downloadAlbumsDoneMsg{}
 	}
 }

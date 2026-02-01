@@ -41,7 +41,10 @@ type TokenResponse struct {
 }
 
 func InteractiveFlow(logger *slog.Logger) error {
-	verifier, challenge := generatePKCE()
+	verifier, challenge, err := generatePKCE()
+	if err != nil {
+		return err
+	}
 
 	authURL := fmt.Sprintf(
 		"%s?response_type=code&client_id=%s&redirect_uri=%s&scope=%s&state=12345&code_challenge=%s&code_challenge_method=S256",
@@ -59,7 +62,10 @@ func InteractiveFlow(logger *slog.Logger) error {
 	logger.Info("Copy the FULL URL from the address bar and paste it here:")
 	fmt.Print("Paste redirect URL: ")
 	reader := bufio.NewReader(os.Stdin)
-	redirectURL, _ := reader.ReadString('\n')
+	redirectURL, err := reader.ReadString('\n')
+	if err != nil {
+		return err
+	}
 	redirectURL = strings.TrimSpace(redirectURL)
 
 	u, err := url.Parse(redirectURL)
@@ -84,7 +90,10 @@ func InteractiveFlow(logger *slog.Logger) error {
 	form.Add("device_id", deviceID)
 	form.Add("code_verifier", verifier)
 
-	req, _ := http.NewRequest(http.MethodPost, vkTokenEndpoint, strings.NewReader(form.Encode()))
+	req, err := http.NewRequest(http.MethodPost, vkTokenEndpoint, strings.NewReader(form.Encode()))
+	if err != nil {
+		return err
+	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := http.DefaultClient.Do(req)
@@ -98,7 +107,10 @@ func InteractiveFlow(logger *slog.Logger) error {
 		return fmt.Errorf("VK token exchange failed: %s", resp.Status)
 	}
 
-	bodyBytes, _ := io.ReadAll(resp.Body)
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
 
 	var token TokenResponse
 	err = json.Unmarshal(bodyBytes, &token)
@@ -113,14 +125,16 @@ func InteractiveFlow(logger *slog.Logger) error {
 	})
 }
 
-func generatePKCE() (verifier, challenge string) {
+func generatePKCE() (verifier, challenge string, err error) {
 	const verifyerLength = 32
 	verifierBytes := make([]byte, verifyerLength)
-	_, _ = rand.Read(verifierBytes)
+	if _, err = rand.Read(verifierBytes); err != nil {
+		return "", "", err
+	}
 	verifier = base64.RawURLEncoding.EncodeToString(verifierBytes)
 	sha := sha256.Sum256([]byte(verifier))
 	challenge = base64.RawURLEncoding.EncodeToString(sha[:])
-	return verifier, challenge
+	return verifier, challenge, nil
 }
 
 func openBrowser(url string, logger *slog.Logger) {

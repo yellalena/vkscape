@@ -20,30 +20,34 @@ func VkAlbumsToPhotoAlbums(albumObjects []vkObject.PhotosPhotoAlbumFull) []Photo
 	return albums
 }
 
-func AlbumIDsToPhotoAlbums(albumIDs []string) []PhotoAlbum {
-	albums := make([]PhotoAlbum, len(albumIDs))
+func AlbumIDsToPhotoAlbums(albumIDs []string) ([]PhotoAlbum, []string) {
+	albums := make([]PhotoAlbum, 0, len(albumIDs))
+	var invalid []string
 
-	for i, id := range albumIDs {
+	for _, id := range albumIDs {
 		idInt, err := strconv.Atoi(id)
 		if err != nil {
-			panic(err) // todo
+			invalid = append(invalid, id)
+			continue
 		}
-		albums[i] = PhotoAlbum{
+		albums = append(albums, PhotoAlbum{
 			ID:          idInt,
 			Title:       id,
 			Description: "",
-		}
+		})
 	}
 
-	return albums
+	return albums, invalid
 }
 
-func FilterAlbumsByIDs(albumIDs []string, allAlbums []PhotoAlbum) []PhotoAlbum {
+func FilterAlbumsByIDs(albumIDs []string, allAlbums []PhotoAlbum) ([]PhotoAlbum, []string) {
 	// Create a set of requested IDs for quick lookup
 	requestedIDs := make(map[int]bool)
+	var invalid []string
 	for _, idStr := range albumIDs {
 		idInt, err := strconv.Atoi(idStr)
 		if err != nil {
+			invalid = append(invalid, idStr)
 			continue
 		}
 		requestedIDs[idInt] = true
@@ -56,5 +60,5 @@ func FilterAlbumsByIDs(albumIDs []string, allAlbums []PhotoAlbum) []PhotoAlbum {
 		}
 	}
 
-	return albums
+	return albums, invalid
 }

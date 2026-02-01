@@ -5,19 +5,19 @@ import (
 	vkObject "github.com/SevereCloud/vksdk/v2/object"
 )
 
-func (VK *VKClient) GetAlbums(ownerID int) []vkObject.PhotosPhotoAlbumFull {
+func (VK *VKClient) GetAlbums(ownerID int) ([]vkObject.PhotosPhotoAlbumFull, error) {
 	res, err := VK.Client.PhotosGetAlbums(api.Params{
 		"owner_id": ownerID,
 	})
 	if err != nil {
 		VK.logger.Error("Failed to get albums", "error", err, "owner_id", ownerID)
-		panic(err)
+		return nil, err
 	}
 
-	return res.Items
+	return res.Items, nil
 }
 
-func (VK *VKClient) GetPhotos(ownerID int, albumID string) []vkObject.PhotosPhoto {
+func (VK *VKClient) GetPhotos(ownerID int, albumID string) ([]vkObject.PhotosPhoto, error) {
 	var allPhotos []vkObject.PhotosPhoto
 	offset := 0
 	count := 100 // max allowed by API
@@ -39,7 +39,7 @@ func (VK *VKClient) GetPhotos(ownerID int, albumID string) []vkObject.PhotosPhot
 				"album_id",
 				albumID,
 			)
-			break
+			return allPhotos, err
 		}
 
 		allPhotos = append(allPhotos, res.Items...)
@@ -51,5 +51,5 @@ func (VK *VKClient) GetPhotos(ownerID int, albumID string) []vkObject.PhotosPhot
 		offset += count
 	}
 
-	return allPhotos
+	return allPhotos, nil
 }
