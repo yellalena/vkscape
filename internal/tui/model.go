@@ -265,7 +265,7 @@ func (m *model) clearLogs() {
 }
 
 func (m *model) renderDownloadView(content string) string {
-	logsStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
+	logsStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(logsGrey))
 	if len(m.logs) == 0 {
 		return content
 	}
@@ -280,7 +280,7 @@ func (m *model) renderDownloadView(content string) string {
 
 func (m *model) resetSpinner() {
 	m.spin = spinner.New()
-	m.spin.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("69"))
+	m.spin.Style = lipgloss.NewStyle().Foreground(lipgloss.Color(blue))
 	m.spin.Spinner = spinner.Points
 }
 
@@ -290,7 +290,7 @@ func (m *model) resetProgress() {
 	m.progrs.progStatus = ""
 
 	m.progrs.prog = progress.New(
-		progress.WithScaledGradient("#5e61b5", "#c468ac"),
+		progress.WithScaledGradient(blue, pink),
 		progress.WithSpringOptions(100, 2.5),
 		progress.WithWidth(60),
 	)
