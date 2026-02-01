@@ -54,10 +54,10 @@ type model struct {
 
 func initialModel() model {
 	items := []list.Item{
-		menuItem("Download albums"),
-		menuItem("Download groups"),
-		menuItem("Authenticate"),
-		menuItem("Quit"),
+		menuItem{title: utils.CommandAlbumsTitle, desc: utils.CommandAlbumsDesc},
+		menuItem{title: utils.CommandGroupsTitle, desc: utils.CommandGroupsDesc},
+		menuItem{title: utils.CommandAuthTitle, desc: utils.CommandAuthDesc},
+		menuItem{title: utils.MenuQuit, desc: utils.MenuQuit},
 	}
 
 	l := list.New(items, list.NewDefaultDelegate(), 0, 0)
@@ -124,8 +124,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if key, ok := msg.(tea.KeyMsg); ok && key.String() == "enter" {
-			switch m.menu.SelectedItem().(menuItem) {
-			case "Download albums":
+			switch m.menu.SelectedItem().(menuItem).title {
+			case utils.CommandAlbumsTitle:
 				m.state = stateAlbumOwnerInput
 				m.errMsg = ""
 				m.downloadDone = false
@@ -133,7 +133,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.input.SetValue("")
 				m.input.Placeholder = "Owner ID"
 				m.input.Focus()
-			case "Quit":
+			case utils.MenuQuit:
 				return m, tea.Quit
 			}
 		}

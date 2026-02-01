@@ -1,7 +1,10 @@
 package tui
 
-type menuItem string
+type menuItem struct {
+	title string
+	desc  string
+}
 
-func (i menuItem) Title() string       { return string(i) }
-func (i menuItem) Description() string { return string(i) }
-func (i menuItem) FilterValue() string { return string(i) }
+func (i menuItem) Title() string       { return i.title }
+func (i menuItem) Description() string { return i.desc }
+func (i menuItem) FilterValue() string { return i.title }

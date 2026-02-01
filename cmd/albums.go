@@ -14,7 +14,7 @@ import (
 
 var albumDownloadCmd = &cobra.Command{
 	Use:   "albums",
-	Short: "Download photos from albums",
+	Short: utils.CommandAlbumsDesc,
 	Long: `Download photos from albums by their IDs or all albums for an owner.
 
 		Privacy and Authentication Requirements:

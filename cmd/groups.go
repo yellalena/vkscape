@@ -6,12 +6,13 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/yellalena/vkscape/internal/output"
+	"github.com/yellalena/vkscape/internal/utils"
 	"github.com/yellalena/vkscape/internal/vkscape"
 )
 
 var groupDownloadCmd = &cobra.Command{
 	Use:   "groups",
-	Short: "Download posts from groups",
+	Short: utils.CommandGroupsDesc,
 	Long:  "Download posts from groups by their IDs (keep in mind that group IDs must be negative numbers - or literal handlers).",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {

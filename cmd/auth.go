@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 	"github.com/yellalena/vkscape/internal/output"
+	"github.com/yellalena/vkscape/internal/utils"
 	"github.com/yellalena/vkscape/internal/vkscape"
 )
 
@@ -13,7 +14,7 @@ var (
 
 var authCmd = &cobra.Command{
 	Use:   "auth",
-	Short: "Authenticate with VK",
+	Short: utils.CommandAuthDesc,
 	Long:  "Authenticate with VK using whether an app token or user token (will open browser).", // todo
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
