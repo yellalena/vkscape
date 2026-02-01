@@ -22,11 +22,15 @@ const (
 	stateAlbumOwnerInput
 	stateAlbumIDsInput
 	stateGroupIDsInput
+	stateAuthRun
+	stateAuthCompleting
 )
 
 type userInput struct {
-	ownerID  string
-	albumIDs string
+	ownerID      string
+	albumIDs     string
+	authVerifier string
+	authResult   string
 }
 
 type progressModel struct {
@@ -51,7 +55,7 @@ type model struct {
 
 	errMsg string
 
-	downloadDone bool
+	actionDone bool
 }
 
 func initialModel() model {
@@ -70,7 +74,6 @@ func initialModel() model {
 
 	ti := textinput.New()
 	ti.Placeholder = "123456"
-	ti.CharLimit = 50
 	ti.Width = 30
 
 	m := model{
@@ -96,11 +99,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.menu.SetSize(msg.Width, msg.Height)
 	case downloadAlbumsDoneMsg:
-		m.downloadDone = true
+		m.actionDone = true
 		m.clearLogs()
 	case downloadGroupsDoneMsg:
-		m.downloadDone = true
+		m.actionDone = true
 		m.clearLogs()
+	case authStartMsg:
+		m.inputValues.authVerifier = msg.authVerifier
+		m.inputValues.authResult = ""
+		m.errMsg = ""
+		m.input.SetValue("")
+		m.input.Placeholder = "Redirect URL"
+		m.input.Focus()
+		cmds = append(cmds, openAuthBrowserCmd(msg.authURL))
+	case authResultMsg:
+		m.actionDone = true
+		if msg.ok {
+			m.inputValues.authResult = "Authentication complete."
+		} else {
+			m.inputValues.authResult = "Authentication failed."
+		}
 	case progressStartMsg:
 		m.progrs.progTotal = msg.total
 	case progressIncMsg:
@@ -133,23 +151,22 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key, ok := msg.(tea.KeyMsg); ok && key.String() == "enter" {
 			switch m.menu.SelectedItem().(menuItem).title {
 			case utils.CommandAlbumsTitle:
+				m.resetEverything()
 				m.state = stateAlbumOwnerInput
-				m.errMsg = ""
-				m.downloadDone = false
-				m.clearLogs()
-				m.clearErrorLogs()
-				m.input.SetValue("")
+				m.actionDone = false
 				m.input.Placeholder = "Owner ID"
 				m.input.Focus()
 			case utils.CommandGroupsTitle:
+				m.resetEverything()
 				m.state = stateGroupIDsInput
-				m.errMsg = ""
-				m.downloadDone = false
-				m.clearLogs()
-				m.clearErrorLogs()
-				m.input.SetValue("")
+				m.actionDone = false
 				m.input.Placeholder = "Group IDs"
 				m.input.Focus()
+			case utils.CommandAuthTitle:
+				m.resetEverything()
+				m.state = stateAuthRun
+				m.actionDone = false
+				return m, tea.Batch(authCmd(), m.spin.Tick)
 			case utils.MenuQuit:
 				return m, tea.Quit
 			}
@@ -193,9 +210,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				idList := utils.ParseIDList(m.inputValues.albumIDs)
 				m.state = stateDownload
-				m.errMsg = ""
-				m.resetSpinner()
-				m.resetProgress()
 				return m, tea.Batch(downloadAlbumsCmd(ownerID, idList), m.spin.Tick)
 			case "esc":
 				m.state = stateMenu
@@ -223,13 +237,41 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 				m.state = stateDownload
-				m.errMsg = ""
-				m.resetSpinner()
-				m.resetProgress()
 				return m, tea.Batch(downloadGroupsCmd(idList), m.spin.Tick)
 			case "esc":
 				m.state = stateMenu
 			}
+		}
+
+	case stateAuthRun:
+		m.input, cmd = m.input.Update(msg)
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+
+		if key, ok := msg.(tea.KeyMsg); ok {
+			switch key.String() {
+			case "enter":
+				redirectURL := m.input.Value()
+				if strings.TrimSpace(redirectURL) == "" {
+					m.errMsg = "Please paste the full redirect URL"
+					return m, nil
+				}
+
+				m.errMsg = ""
+				m.input.SetValue("")
+				m.state = stateAuthCompleting
+				return m, finishAuthCmd(m.inputValues.authVerifier, redirectURL)
+			case "esc":
+				m.state = stateMenu
+				m.clearErrorLogs()
+			}
+		}
+
+	case stateAuthCompleting:
+		if key, ok := msg.(tea.KeyMsg); ok && key.String() == "esc" {
+			m.state = stateMenu
+			m.clearErrorLogs()
 		}
 	}
 
@@ -274,17 +316,17 @@ func (m model) View() string {
 
 	case stateDownload:
 		content := "Downloading...\n\nPlease wait.\n\n(esc to cancel view)"
-		if !m.downloadDone {
+		if !m.actionDone {
 			content = fmt.Sprintf("%s Downloading...\n\nPlease wait.\n\n(esc to cancel view)", m.spin.View())
 		}
-		if m.downloadDone {
+		if m.actionDone {
 			content = "Download complete.\n\n(esc to return to menu)"
 		}
 		progressBlock := m.renderProgress()
 		if progressBlock != "" {
 			content = content + "\n" + progressBlock
 		}
-		return m.renderDownloadView(content)
+		return m.renderWithLogs(content)
 
 	case stateGroupIDsInput:
 		if m.errMsg != "" {
@@ -298,6 +340,30 @@ func (m model) View() string {
 			"Enter group IDs (comma or space separated):\n\n%s\n\n(esc to cancel)",
 			m.input.View(),
 		)
+
+	case stateAuthRun:
+		if m.actionDone && m.inputValues.authResult != "" {
+			return fmt.Sprintf("%s\n\n(esc to return to menu)", m.inputValues.authResult)
+		}
+		if m.errMsg != "" {
+			prompt := fmt.Sprintf(
+				"Paste the FULL redirect URL from the browser:\n\n%s\n\nError: %s\n\n(esc to cancel)",
+				m.input.View(),
+				m.errMsg,
+			)
+			return m.renderWithLogs(prompt)
+		}
+		prompt := fmt.Sprintf(
+			"Paste the FULL redirect URL from the browser:\n\n%s\n\n(esc to cancel)",
+			m.input.View(),
+		)
+		return m.renderWithLogs(prompt)
+
+	case stateAuthCompleting:
+		if m.actionDone && m.inputValues.authResult != "" {
+			return fmt.Sprintf("%s\n\n(esc to return to menu)", m.inputValues.authResult)
+		}
+		return fmt.Sprintf("%s Authenticating...\n\nPlease wait.\n\n(esc to cancel view)", m.spin.View())
 	}
 
 	return ""
@@ -327,27 +393,13 @@ func (m *model) clearErrorLogs() {
 	m.errs = nil
 }
 
-func (m *model) renderDownloadView(content string) string {
-	logsStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(logsColor))
-	errsStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(red))
-	if len(m.logs) == 0 && len(m.errs) == 0 {
-		return content
-	}
-
-	logs := m.logs
-	if len(logs) > maxVisibleLogLines {
-		logs = logs[len(logs)-maxVisibleLogLines:]
-	}
-
-	var blocks []string
-	if len(m.errs) > 0 {
-		blocks = append(blocks, errsStyle.Render(strings.Join(m.errs, "\n")))
-	}
-	if len(logs) > 0 {
-		blocks = append(blocks, logsStyle.Render(strings.Join(logs, "\n")))
-	}
-
-	return content + "\n\n" + strings.Join(blocks, "\n\n")
+func (m *model) resetEverything() {
+	m.input.SetValue("")
+	m.errMsg = ""
+	m.clearLogs()
+	m.clearErrorLogs()
+	m.resetSpinner()
+	m.resetProgress()
 }
 
 func (m *model) resetSpinner() {
@@ -366,24 +418,4 @@ func (m *model) resetProgress() {
 		progress.WithSpringOptions(100, 2.5),
 		progress.WithWidth(60),
 	)
-}
-
-func (m *model) renderProgress() string {
-	if m.progrs.progTotal <= 0 {
-		return ""
-	}
-	percent := float64(m.progrs.progCurrent) / float64(m.progrs.progTotal)
-	if percent < 0 {
-		percent = 0
-	}
-	if percent > 1 {
-		percent = 1
-	}
-
-	bar := m.progrs.prog.ViewAs(percent)
-	if m.progrs.progStatus == "" {
-		return bar
-	}
-
-	return bar + "\n" + m.progrs.progStatus
 }

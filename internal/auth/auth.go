@@ -40,11 +40,35 @@ type TokenResponse struct {
 	TokenType    string `json:"token_type"`
 }
 
+type AuthSession struct {
+	Verifier string
+	AuthURL  string
+}
+
 func InteractiveFlow(logger *slog.Logger) error {
+	session, err := StartInteractiveFlow(logger)
+	if err != nil {
+		return err
+	}
+
+	OpenBrowser(session.AuthURL, logger)
+	output.Info("After authorizing, you'll be redirected to a blank page.")
+	output.Info("Copy the FULL URL from the address bar and paste it here:")
+	reader := bufio.NewReader(os.Stdin)
+	redirectURL, err := reader.ReadString('\n')
+	if err != nil {
+		logger.Error("Failed to read redirect URL", "error", err)
+		return fmt.Errorf("could not read input")
+	}
+
+	return FinishInteractiveFlow(logger, session.Verifier, redirectURL)
+}
+
+func StartInteractiveFlow(logger *slog.Logger) (*AuthSession, error) {
 	verifier, challenge, err := generatePKCE()
 	if err != nil {
 		logger.Error("Failed to generate PKCE", "error", err)
-		return fmt.Errorf("internal error")
+		return nil, fmt.Errorf("internal error")
 	}
 
 	authURL := fmt.Sprintf(
@@ -60,16 +84,13 @@ func InteractiveFlow(logger *slog.Logger) error {
 	output.Info("Starting interactive login flow... Your browser will be opened.")
 	output.Info("If the the browser didn't open or you don't see VK login page, please open this URL manually and login:")
 	output.Info(authURL)
-	openBrowser(authURL, logger)
+	return &AuthSession{
+		Verifier: verifier,
+		AuthURL:  authURL,
+	}, nil
+}
 
-	output.Info("After authorizing, you'll be redirected to a blank page.")
-	output.Info("Copy the FULL URL from the address bar and paste it here:")
-	reader := bufio.NewReader(os.Stdin)
-	redirectURL, err := reader.ReadString('\n')
-	if err != nil {
-		logger.Error("Failed to read redirect URL", "error", err)
-		return fmt.Errorf("could not read input")
-	}
+func FinishInteractiveFlow(logger *slog.Logger, verifier, redirectURL string) error {
 	redirectURL = strings.TrimSpace(redirectURL)
 
 	u, err := url.Parse(redirectURL)
@@ -155,7 +176,7 @@ func generatePKCE() (verifier, challenge string, err error) {
 	return verifier, challenge, nil
 }
 
-func openBrowser(url string, logger *slog.Logger) {
+func OpenBrowser(url string, logger *slog.Logger) {
 	var cmd string
 	var args []string
 
