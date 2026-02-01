@@ -21,6 +21,7 @@ const (
 	stateAlbumOwnerInput
 	stateAlbumIDsInput
 	stateAlbumDownload
+	stateGroupIDsInput
 )
 
 type userInput struct {
@@ -96,6 +97,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case downloadAlbumsDoneMsg:
 		m.downloadDone = true
 		m.clearLogs()
+	case downloadGroupsDoneMsg:
+		m.downloadDone = true
+		m.clearLogs()
 	case progressStartMsg:
 		m.progrs.progTotal = msg.total
 	case progressIncMsg:
@@ -132,6 +136,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.clearLogs()
 				m.input.SetValue("")
 				m.input.Placeholder = "Owner ID"
+				m.input.Focus()
+			case utils.CommandGroupsTitle:
+				m.state = stateGroupIDsInput
+				m.errMsg = ""
+				m.downloadDone = false
+				m.clearLogs()
+				m.input.SetValue("")
+				m.input.Placeholder = "Group IDs"
 				m.input.Focus()
 			case utils.MenuQuit:
 				return m, tea.Quit
@@ -189,6 +201,30 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key, ok := msg.(tea.KeyMsg); ok && key.String() == "esc" {
 			m.state = stateMenu
 		}
+
+	case stateGroupIDsInput:
+		m.input, cmd = m.input.Update(msg)
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+
+		if key, ok := msg.(tea.KeyMsg); ok {
+			switch key.String() {
+			case "enter":
+				idList := utils.ParseIDList(m.input.Value())
+				if len(idList) == 0 {
+					m.errMsg = "Please enter at least one group ID"
+					return m, nil
+				}
+				m.state = stateAlbumDownload
+				m.errMsg = ""
+				m.resetSpinner()
+				m.resetProgress()
+				return m, tea.Batch(downloadGroupsCmd(idList), m.spin.Tick)
+			case "esc":
+				m.state = stateMenu
+			}
+		}
 	}
 
 	if len(cmds) > 0 {
@@ -243,6 +279,19 @@ func (m model) View() string {
 			content = content + "\n" + progressBlock
 		}
 		return m.renderDownloadView(content)
+
+	case stateGroupIDsInput:
+		if m.errMsg != "" {
+			return fmt.Sprintf(
+				"Enter group IDs (comma or space separated):\n\n%s\n\nError: %s\n\n(esc to cancel)",
+				m.input.View(),
+				m.errMsg,
+			)
+		}
+		return fmt.Sprintf(
+			"Enter group IDs (comma or space separated):\n\n%s\n\n(esc to cancel)",
+			m.input.View(),
+		)
 	}
 
 	return ""
