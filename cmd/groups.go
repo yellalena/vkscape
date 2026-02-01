@@ -13,8 +13,19 @@ import (
 var groupDownloadCmd = &cobra.Command{
 	Use:   "groups",
 	Short: utils.CommandGroupsDesc,
-	Long:  "Download posts from groups by their IDs (keep in mind that group IDs must be negative numbers - or literal handlers).",
-	Args:  cobra.NoArgs,
+	Long: `Download posts from groups by their IDs.
+
+		Group IDs:
+		- Numeric group IDs should be negative (e.g. -123456).
+		- You can also use literal group handles (e.g. @mygroup).
+
+		Examples:
+		# Download posts from two groups by ID
+		vkscape groups --ids -123456,-987654
+
+		# Download posts by group handle
+		vkscape groups --ids mygroup`,
+	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		verbose, _ := cmd.Flags().GetBool("verbose")
 		logger, logFile := output.InitLogger(verbose)

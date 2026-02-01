@@ -15,8 +15,19 @@ var (
 var authCmd = &cobra.Command{
 	Use:   "auth",
 	Short: utils.CommandAuthDesc,
-	Long:  "Authenticate with VK using whether an app token or user token (will open browser).", // todo
-	Args:  cobra.NoArgs,
+	Long: `Authenticate with VK using either an app token or user token.
+
+		Authentication methods:
+		- App token (--token): Use a pre-generated app token.
+		- User auth (--user): Opens browser for interactive login.
+
+		Examples:
+		# Authenticate with app token
+		vkscape auth --token YOUR_TOKEN
+
+		# Authenticate with user flow
+		vkscape auth --user`,
+	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		verbose, _ := cmd.Flags().GetBool("verbose")
 		logger, logFile := output.InitLogger(verbose)
