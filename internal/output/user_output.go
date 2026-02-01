@@ -7,9 +7,14 @@ import (
 )
 
 var out io.Writer = os.Stdout
+var errOut io.Writer = os.Stdout
 
 func SetWriter(w io.Writer) {
 	out = w
+}
+
+func SetErrorWriter(w io.Writer) {
+	errOut = w
 }
 
 func Info(msg string) {
@@ -17,7 +22,7 @@ func Info(msg string) {
 }
 
 func Error(msg string) {
-	_, _ = fmt.Fprintln(out, msg)
+	_, _ = fmt.Fprintln(errOut, msg)
 }
 
 func Success(msg string) {

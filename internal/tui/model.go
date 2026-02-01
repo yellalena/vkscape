@@ -18,9 +18,9 @@ type state int
 
 const (
 	stateMenu state = iota
+	stateDownload
 	stateAlbumOwnerInput
 	stateAlbumIDsInput
-	stateAlbumDownload
 	stateGroupIDsInput
 )
 
@@ -43,6 +43,7 @@ type model struct {
 	input textinput.Model
 
 	logs   []string
+	errs   []string
 	spin   spinner.Model
 	progrs progressModel
 
@@ -112,6 +113,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.progrs.progCurrent = m.progrs.progTotal
 	case logMsg:
 		m.addLog(string(msg))
+	case errorLogMsg:
+		m.addErrorLog(string(msg))
 	case spinner.TickMsg:
 		m.spin, cmd = m.spin.Update(msg)
 		if cmd != nil {
@@ -134,6 +137,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.errMsg = ""
 				m.downloadDone = false
 				m.clearLogs()
+				m.clearErrorLogs()
 				m.input.SetValue("")
 				m.input.Placeholder = "Owner ID"
 				m.input.Focus()
@@ -142,6 +146,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.errMsg = ""
 				m.downloadDone = false
 				m.clearLogs()
+				m.clearErrorLogs()
 				m.input.SetValue("")
 				m.input.Placeholder = "Group IDs"
 				m.input.Focus()
@@ -187,7 +192,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				idList := utils.ParseIDList(m.inputValues.albumIDs)
-				m.state = stateAlbumDownload
+				m.state = stateDownload
 				m.errMsg = ""
 				m.resetSpinner()
 				m.resetProgress()
@@ -197,9 +202,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-	case stateAlbumDownload:
+	case stateDownload:
 		if key, ok := msg.(tea.KeyMsg); ok && key.String() == "esc" {
 			m.state = stateMenu
+			m.clearErrorLogs()
 		}
 
 	case stateGroupIDsInput:
@@ -216,7 +222,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.errMsg = "Please enter at least one group ID"
 					return m, nil
 				}
-				m.state = stateAlbumDownload
+				m.state = stateDownload
 				m.errMsg = ""
 				m.resetSpinner()
 				m.resetProgress()
@@ -266,10 +272,10 @@ func (m model) View() string {
 			m.input.View(),
 		)
 
-	case stateAlbumDownload:
-		content := "Downloading albums...\n\nPlease wait.\n\n(esc to cancel view)"
+	case stateDownload:
+		content := "Downloading...\n\nPlease wait.\n\n(esc to cancel view)"
 		if !m.downloadDone {
-			content = fmt.Sprintf("%s Downloading albums...\n\nPlease wait.\n\n(esc to cancel view)", m.spin.View())
+			content = fmt.Sprintf("%s Downloading...\n\nPlease wait.\n\n(esc to cancel view)", m.spin.View())
 		}
 		if m.downloadDone {
 			content = "Download complete.\n\n(esc to return to menu)"
@@ -313,9 +319,18 @@ func (m *model) clearLogs() {
 	m.logs = nil
 }
 
+func (m *model) addErrorLog(line string) {
+	m.errs = append(m.errs, line)
+}
+
+func (m *model) clearErrorLogs() {
+	m.errs = nil
+}
+
 func (m *model) renderDownloadView(content string) string {
-	logsStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(logsGrey))
-	if len(m.logs) == 0 {
+	logsStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(logsColor))
+	errsStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(red))
+	if len(m.logs) == 0 && len(m.errs) == 0 {
 		return content
 	}
 
@@ -324,7 +339,15 @@ func (m *model) renderDownloadView(content string) string {
 		logs = logs[len(logs)-maxVisibleLogLines:]
 	}
 
-	return content + "\n\n" + logsStyle.Render(strings.Join(logs, "\n"))
+	var blocks []string
+	if len(m.errs) > 0 {
+		blocks = append(blocks, errsStyle.Render(strings.Join(m.errs, "\n")))
+	}
+	if len(logs) > 0 {
+		blocks = append(blocks, logsStyle.Render(strings.Join(logs, "\n")))
+	}
+
+	return content + "\n\n" + strings.Join(blocks, "\n\n")
 }
 
 func (m *model) resetSpinner() {

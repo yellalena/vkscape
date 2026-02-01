@@ -150,7 +150,7 @@ func InteractiveAuth(logger *slog.Logger) error {
 		logger.Error("Authentication failed", "error", err)
 		return err
 	}
-	output.Success("Authentication successful!")
+	output.Success("Successfully retrieved token!")
 	return nil
 }
 

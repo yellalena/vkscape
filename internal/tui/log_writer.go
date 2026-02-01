@@ -8,15 +8,21 @@ import (
 )
 
 type logMsg string
+type errorLogMsg string
 
 type logWriter struct {
-	send func(tea.Msg)
-	mu   sync.Mutex
-	buf  bytes.Buffer
+	send    func(tea.Msg)
+	mu      sync.Mutex
+	buf     bytes.Buffer
+	isError bool
 }
 
 func newLogWriter(send func(tea.Msg)) *logWriter {
 	return &logWriter{send: send}
+}
+
+func newErrorLogWriter(send func(tea.Msg)) *logWriter {
+	return &logWriter{send: send, isError: true}
 }
 
 func (w *logWriter) Write(p []byte) (int, error) {
@@ -32,7 +38,11 @@ func (w *logWriter) Write(p []byte) (int, error) {
 		}
 		line := string(bytes.TrimRight(b[:idx], "\r"))
 		w.buf.Next(idx + 1)
-		w.send(logMsg(line))
+		if w.isError {
+			w.send(errorLogMsg(line))
+		} else {
+			w.send(logMsg(line))
+		}
 	}
 
 	return n, nil
