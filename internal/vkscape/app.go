@@ -14,7 +14,7 @@ import (
 	"github.com/yellalena/vkscape/internal/utils"
 )
 
-func DownloadGroups(groupIDs []string, logger *slog.Logger) error {
+func DownloadGroups(groupIDs []string, logger *slog.Logger, reporter progress.Reporter) error {
 	if logger == nil {
 		return fmt.Errorf("logger is nil")
 	}
@@ -22,27 +22,38 @@ func DownloadGroups(groupIDs []string, logger *slog.Logger) error {
 	if err != nil {
 		return err
 	}
+	reporter.Start(len(groupIDs) * 2)
 	output.Info(fmt.Sprintf("Processing %d group(s)...", len(groupIDs)))
 	for _, groupID := range groupIDs {
+		reporter.SetStatus(fmt.Sprintf("Downloading group %s", groupID))
 		output.Info(fmt.Sprintf("📥 Downloading group: %s", groupID))
 		groupDir, err := utils.CreateGroupDirectory(groupID)
 		if err != nil {
 			output.Error(fmt.Sprintf("Failed to create directory for group %s: %v", groupID, err))
+			reporter.Increment()
 			return fmt.Errorf("failed to create directory for group %s: %w", groupID, err)
 		}
 		logger.Info("Created directory", "group_id", groupID, "dir", groupDir)
 		posts, err := svc.Client.GetPosts(groupID)
 		if err != nil {
 			output.Error(fmt.Sprintf("Failed to fetch posts for group %s: %v", groupID, err))
+			reporter.Increment()
 			return fmt.Errorf("failed to get posts for group %s: %w", groupID, err)
 		}
+		reporter.Increment()
 		output.Info(fmt.Sprintf("  Found %d post(s) in group %s", len(posts), groupID))
 		logger.Info("Found posts", "group_id", groupID, "count", len(posts))
 		svc.Parser.ParseWallPosts(&svc.Wg, groupDir, posts)
+		svc.Wg.Wait()
+		reporter.Increment()
+		errCount := svc.Parser.CloseErrorsAndCount()
+		if errCount > 0 {
+			reporter.SetStatus(fmt.Sprintf("Completed with %d errors", errCount))
+		}
 	}
 
-	svc.Wg.Wait()
 	output.Success(fmt.Sprintf("✅ Completed downloading %d group(s)", len(groupIDs)))
+	reporter.Done()
 
 	return nil
 }

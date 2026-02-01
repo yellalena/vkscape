@@ -33,7 +33,8 @@ func downloadGroupsCmd(groupIDs []string) tea.Cmd {
 			defer logFile.Close() //nolint:errcheck
 		}
 
-		if err := vkscape.DownloadGroups(groupIDs, logger); err != nil {
+		reporter := newTUIProgressReporter(getProgressSender())
+		if err := vkscape.DownloadGroups(groupIDs, logger, reporter); err != nil {
 			output.Error(fmt.Sprintf("Failed to download groups: %v", err))
 		}
 		return downloadGroupsDoneMsg{}
