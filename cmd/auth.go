@@ -29,12 +29,10 @@ var authCmd = &cobra.Command{
 		}
 
 		if userFlag {
-			output.Info("Starting interactive authentication...")
 			if err := vkscape.InteractiveAuth(logger); err != nil {
 				return
 			}
 		} else {
-			output.Info("Authenticating with app token...")
 			if err := vkscape.AppTokenAuth(tokenFlag, logger); err != nil {
 				return
 			}

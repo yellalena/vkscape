@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -20,6 +19,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/yellalena/vkscape/internal/config"
+	"github.com/yellalena/vkscape/internal/output"
 )
 
 var _ = godotenv.Load()
@@ -43,7 +43,8 @@ type TokenResponse struct {
 func InteractiveFlow(logger *slog.Logger) error {
 	verifier, challenge, err := generatePKCE()
 	if err != nil {
-		return err
+		logger.Error("Failed to generate PKCE", "error", err)
+		return fmt.Errorf("internal error")
 	}
 
 	authURL := fmt.Sprintf(
@@ -55,32 +56,38 @@ func InteractiveFlow(logger *slog.Logger) error {
 		challenge,
 	)
 
-	logger.Info("🔐 Please open this URL in your browser and login", "url", authURL)
+	logger.Info("Starting interactive login flow with url", "url", authURL)
+	output.Info("Starting interactive login flow... Your browser will be opened.")
+	output.Info("If the the browser didn't open or you don't see VK login page, please open this URL manually and login:")
+	output.Info(authURL)
 	openBrowser(authURL, logger)
 
-	logger.Info("After authorizing, you'll be redirected to a blank page.")
-	logger.Info("Copy the FULL URL from the address bar and paste it here:")
-	fmt.Print("Paste redirect URL: ")
+	output.Info("After authorizing, you'll be redirected to a blank page.")
+	output.Info("Copy the FULL URL from the address bar and paste it here:")
 	reader := bufio.NewReader(os.Stdin)
 	redirectURL, err := reader.ReadString('\n')
 	if err != nil {
-		return err
+		logger.Error("Failed to read redirect URL", "error", err)
+		return fmt.Errorf("could not read input")
 	}
 	redirectURL = strings.TrimSpace(redirectURL)
 
 	u, err := url.Parse(redirectURL)
 	if err != nil {
-		return err
+		logger.Error("Failed to parse redirect URL", "error", err)
+		return fmt.Errorf("could not parse URL")
 	}
 	q := u.Query()
 	code := q.Get("code")
 	deviceID := q.Get("device_id")
 
 	if code == "" || deviceID == "" {
-		return errors.New("authorization code or device_id not found in URL")
+		logger.Error("Authorization code or device_id not found in URL", "redirect_url", redirectURL)
+		return fmt.Errorf("authorization code or device_id not found in URL")
 	}
 
-	logger.Info("✅ Received code and device_id. Exchanging for token...")
+	logger.Info("Received code and device_id; exchanging for token")
+	output.Info("Exchanging authorization code for token...")
 
 	form := url.Values{}
 	form.Add("grant_type", "authorization_code")
@@ -92,43 +99,54 @@ func InteractiveFlow(logger *slog.Logger) error {
 
 	req, err := http.NewRequest(http.MethodPost, vkTokenEndpoint, strings.NewReader(form.Encode()))
 	if err != nil {
-		return err
+		logger.Error("Failed to create token exchange request", "error", err)
+		return fmt.Errorf("internal error")
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		logger.Error("Token exchange request failed", "error", err)
+		return fmt.Errorf("internal error")
 	}
 	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		logger.Error("VK token exchange failed", "status", resp.Status)
-		return fmt.Errorf("VK token exchange failed: %s", resp.Status)
+		return fmt.Errorf("internal error")
 	}
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		logger.Error("Failed to read token exchange response", "error", err)
+		return fmt.Errorf("internal error")
 	}
 
 	var token TokenResponse
 	err = json.Unmarshal(bodyBytes, &token)
 	if err != nil {
-		return fmt.Errorf("failed to parse JSON: %w", err)
+		logger.Error("Failed to parse token JSON", "error", err)
+		return fmt.Errorf("internal error")
 	}
 
-	return config.SaveConfig(&config.AuthConfig{
+	if err := config.SaveConfig(&config.AuthConfig{
 		AuthMethod:   config.AuthMethodUser,
 		AccessToken:  token.AccessToken,
 		RefreshToken: token.RefreshToken,
-	})
+	}); err != nil {
+		logger.Error("Failed to save auth config", "error", err)
+		return fmt.Errorf("could not save token")
+	}
+
+	logger.Info("Authentication successful")
+	return nil
 }
 
 func generatePKCE() (verifier, challenge string, err error) {
 	const verifyerLength = 32
 	verifierBytes := make([]byte, verifyerLength)
 	if _, err = rand.Read(verifierBytes); err != nil {
+		err = fmt.Errorf("generate PKCE: %w", err)
 		return "", "", err
 	}
 	verifier = base64.RawURLEncoding.EncodeToString(verifierBytes)
