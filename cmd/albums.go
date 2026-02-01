@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
@@ -74,7 +75,7 @@ var albumDownloadCmd = &cobra.Command{
 			output.Info("Fetching all albums for owner...")
 		}
 
-		if err := vkscape.DownloadAlbums(ownerID, idList, logger, &progress.NoopReporter{}); err != nil {
+		if err := vkscape.DownloadAlbums(context.Background(), ownerID, idList, logger, &progress.NoopReporter{}); err != nil {
 			output.Error(fmt.Sprintf("Failed to download albums: %v", err))
 			logger.Error("Failed to download albums", "error", err)
 			return

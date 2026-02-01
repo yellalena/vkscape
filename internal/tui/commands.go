@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -19,7 +20,7 @@ type authResultMsg struct {
 	ok bool
 }
 
-func downloadAlbumsCmd(ownerID int, albumIDs []string) tea.Cmd {
+func downloadAlbumsCmd(ctx context.Context, ownerID int, albumIDs []string) tea.Cmd {
 	return func() tea.Msg {
 		logger, logFile := output.InitLogger(false)
 		if logFile != nil {
@@ -27,14 +28,14 @@ func downloadAlbumsCmd(ownerID int, albumIDs []string) tea.Cmd {
 		}
 
 		reporter := newTUIProgressReporter(getProgressSender())
-		if err := vkscape.DownloadAlbums(ownerID, albumIDs, logger, reporter); err != nil {
+		if err := vkscape.DownloadAlbums(ctx, ownerID, albumIDs, logger, reporter); err != nil {
 			output.Error(fmt.Sprintf("Failed to download albums: %v", err))
 		}
 		return downloadAlbumsDoneMsg{}
 	}
 }
 
-func downloadGroupsCmd(groupIDs []string) tea.Cmd {
+func downloadGroupsCmd(ctx context.Context, groupIDs []string) tea.Cmd {
 	return func() tea.Msg {
 		logger, logFile := output.InitLogger(false)
 		if logFile != nil {
@@ -42,7 +43,7 @@ func downloadGroupsCmd(groupIDs []string) tea.Cmd {
 		}
 
 		reporter := newTUIProgressReporter(getProgressSender())
-		if err := vkscape.DownloadGroups(groupIDs, logger, reporter); err != nil {
+		if err := vkscape.DownloadGroups(ctx, groupIDs, logger, reporter); err != nil {
 			output.Error(fmt.Sprintf("Failed to download groups: %v", err))
 		}
 		return downloadGroupsDoneMsg{}

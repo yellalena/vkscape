@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -56,6 +57,8 @@ type model struct {
 	errMsg string
 
 	actionDone bool
+
+	cancel context.CancelFunc
 }
 
 func initialModel() model {
@@ -101,9 +104,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case downloadAlbumsDoneMsg:
 		m.actionDone = true
 		m.clearLogs()
+		m.cancel = nil
 	case downloadGroupsDoneMsg:
 		m.actionDone = true
 		m.clearLogs()
+		m.cancel = nil
 	case authStartMsg:
 		m.inputValues.authVerifier = msg.authVerifier
 		m.inputValues.authResult = ""
@@ -210,7 +215,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				idList := utils.ParseIDList(m.inputValues.albumIDs)
 				m.state = stateDownload
-				return m, tea.Batch(downloadAlbumsCmd(ownerID, idList), m.spin.Tick)
+				if m.cancel != nil {
+					m.cancel()
+				}
+				ctx, cancel := context.WithCancel(context.Background())
+				m.cancel = cancel
+				return m, tea.Batch(downloadAlbumsCmd(ctx, ownerID, idList), m.spin.Tick)
 			case "esc":
 				m.state = stateMenu
 			}
@@ -218,6 +228,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case stateDownload:
 		if key, ok := msg.(tea.KeyMsg); ok && key.String() == "esc" {
+			if m.cancel != nil {
+				m.cancel()
+				m.cancel = nil
+			}
 			m.state = stateMenu
 			m.clearErrorLogs()
 		}
@@ -237,7 +251,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 				m.state = stateDownload
-				return m, tea.Batch(downloadGroupsCmd(idList), m.spin.Tick)
+				if m.cancel != nil {
+					m.cancel()
+				}
+				ctx, cancel := context.WithCancel(context.Background())
+				m.cancel = cancel
+				return m, tea.Batch(downloadGroupsCmd(ctx, idList), m.spin.Tick)
 			case "esc":
 				m.state = stateMenu
 			}

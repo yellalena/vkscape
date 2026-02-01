@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
@@ -8,16 +9,23 @@ import (
 )
 
 func (p *VKParser) ParseAlbumPhotos(
+	ctx context.Context,
 	wg *sync.WaitGroup,
 	outputDir, albumID string,
 	photos []vkObject.PhotosPhoto,
 ) {
 	p.errs = make(chan error, len(photos))
 	for _, photo := range photos {
+		if ctx.Err() != nil {
+			return
+		}
 		wg.Add(1)
 		go func(photo vkObject.PhotosPhoto) {
 			defer wg.Done()
-			err := p.processPhoto(outputDir, albumID, photo)
+			if ctx.Err() != nil {
+				return
+			}
+			err := p.processPhoto(ctx, outputDir, albumID, photo)
 			if err != nil {
 				p.errs <- err
 			}
@@ -25,7 +33,7 @@ func (p *VKParser) ParseAlbumPhotos(
 	}
 }
 
-func (p *VKParser) processPhoto(outputDir, albumID string, photo vkObject.PhotosPhoto) error {
+func (p *VKParser) processPhoto(ctx context.Context, outputDir, albumID string, photo vkObject.PhotosPhoto) error {
 	if len(photo.Sizes) == 0 {
 		p.logger.Error(
 			"Photo has no sizes",
@@ -37,7 +45,10 @@ func (p *VKParser) processPhoto(outputDir, albumID string, photo vkObject.Photos
 		return fmt.Errorf("photo %d has no sizes", photo.ID)
 	}
 	filename := fmt.Sprintf(ImageFileNameTemplate, albumID, photo.ID)
-	err := downloadImage(photo.Sizes[len(photo.Sizes)-1].URL, outputDir, filename+".jpg")
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	err := downloadImage(ctx, photo.Sizes[len(photo.Sizes)-1].URL, outputDir, filename+".jpg")
 	if err != nil {
 		p.logger.Error(
 			"Failed to download photo",

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -47,7 +48,7 @@ var groupDownloadCmd = &cobra.Command{
 		idList := strings.Split(ids, ",")
 
 		output.Info(fmt.Sprintf("Starting download for %d group(s)...", len(idList)))
-		err = vkscape.DownloadGroups(idList, logger, &progress.NoopReporter{})
+		err = vkscape.DownloadGroups(context.Background(), idList, logger, &progress.NoopReporter{})
 		if err != nil {
 			output.Error(fmt.Sprintf("Failed to download groups: %v", err))
 			logger.Error("Error downloading groups", "error", err)

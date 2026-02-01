@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
@@ -14,23 +15,30 @@ const (
 )
 
 func (p *VKParser) ParseWallPosts(
+	ctx context.Context,
 	wg *sync.WaitGroup,
 	outputDir string,
 	posts []vkObject.WallWallpost,
 ) {
 	p.errs = make(chan error, len(posts))
 	for _, post := range posts {
+		if ctx.Err() != nil {
+			return
+		}
 		wg.Add(1)
 		go func(post vkObject.WallWallpost) {
 			defer wg.Done()
-			if err := p.processPost(outputDir, post); err != nil {
+			if ctx.Err() != nil {
+				return
+			}
+			if err := p.processPost(ctx, outputDir, post); err != nil {
 				p.errs <- err
 			}
 		}(post)
 	}
 }
 
-func (p *VKParser) processPost(outputDir string, post vkObject.WallWallpost) error {
+func (p *VKParser) processPost(ctx context.Context, outputDir string, post vkObject.WallWallpost) error {
 	if post.PostType != PostTypePost || post.CopyHistory != nil {
 		// Don't download reposts or non-posts
 		return nil
@@ -68,6 +76,9 @@ func (p *VKParser) processPost(outputDir string, post vkObject.WallWallpost) err
 	}
 
 	for _, attachment := range post.Attachments {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		if attachment.Type == "photo" {
 			photo := attachment.Photo
 			if len(photo.Sizes) == 0 {
@@ -81,7 +92,7 @@ func (p *VKParser) processPost(outputDir string, post vkObject.WallWallpost) err
 				continue
 			}
 			filename := fmt.Sprintf(ImageFileNameTemplate, postName, photo.ID)
-			err := downloadImage(photo.Sizes[len(photo.Sizes)-1].URL, dirName, filename+".jpg")
+			err := downloadImage(ctx, photo.Sizes[len(photo.Sizes)-1].URL, dirName, filename+".jpg")
 			if err != nil {
 				p.logger.Error(
 					"Failed to download image",

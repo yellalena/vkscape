@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -45,10 +46,14 @@ func convertDate(timestamp int) (string, error) {
 	return tm.Format(DateFormat), nil
 }
 
-func downloadImage(url, outputDir, filename string) error {
-	response, e := http.Get(url) //nolint:gosec // URL from trusted VK API
-	if e != nil {
-		return e
+func downloadImage(ctx context.Context, url, outputDir, filename string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil) //nolint:gosec // URL from trusted VK API
+	if err != nil {
+		return err
+	}
+	response, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
 	}
 	defer response.Body.Close() //nolint:errcheck
 

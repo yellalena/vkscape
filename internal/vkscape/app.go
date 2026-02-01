@@ -1,6 +1,7 @@
 package vkscape
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -14,7 +15,7 @@ import (
 	"github.com/yellalena/vkscape/internal/utils"
 )
 
-func DownloadGroups(groupIDs []string, logger *slog.Logger, reporter progress.Reporter) error {
+func DownloadGroups(ctx context.Context, groupIDs []string, logger *slog.Logger, reporter progress.Reporter) error {
 	if logger == nil {
 		return fmt.Errorf("logger is nil")
 	}
@@ -25,6 +26,10 @@ func DownloadGroups(groupIDs []string, logger *slog.Logger, reporter progress.Re
 	reporter.Start(len(groupIDs) * 2)
 	output.Info(fmt.Sprintf("Processing %d group(s)...", len(groupIDs)))
 	for _, groupID := range groupIDs {
+		if err := ctx.Err(); err != nil {
+			reporter.Done()
+			return err
+		}
 		reporter.SetStatus(fmt.Sprintf("Downloading group %s", groupID))
 		output.Info(fmt.Sprintf("📥 Downloading group: %s", groupID))
 		groupDir, err := utils.CreateGroupDirectory(groupID)
@@ -43,7 +48,7 @@ func DownloadGroups(groupIDs []string, logger *slog.Logger, reporter progress.Re
 		reporter.Increment()
 		output.Info(fmt.Sprintf("  Found %d post(s) in group %s", len(posts), groupID))
 		logger.Info("Found posts", "group_id", groupID, "count", len(posts))
-		svc.Parser.ParseWallPosts(&svc.Wg, groupDir, posts)
+		svc.Parser.ParseWallPosts(ctx, &svc.Wg, groupDir, posts)
 		svc.Wg.Wait()
 		reporter.Increment()
 		errCount := svc.Parser.CloseErrorsAndCount()
@@ -58,7 +63,7 @@ func DownloadGroups(groupIDs []string, logger *slog.Logger, reporter progress.Re
 	return nil
 }
 
-func DownloadAlbums(ownerID int, albumIDs []string, logger *slog.Logger, reporter progress.Reporter) error {
+func DownloadAlbums(ctx context.Context, ownerID int, albumIDs []string, logger *slog.Logger, reporter progress.Reporter) error {
 	if logger == nil {
 		return fmt.Errorf("logger is nil")
 	}
@@ -69,6 +74,10 @@ func DownloadAlbums(ownerID int, albumIDs []string, logger *slog.Logger, reporte
 	output.Info(fmt.Sprintf("Processing albums for owner %d...", ownerID))
 
 	output.Info("Fetching available album list from VK...")
+	if err := ctx.Err(); err != nil {
+		reporter.Done()
+		return err
+	}
 	vkAlbums, err := svc.Client.GetAlbums(ownerID)
 	if err != nil {
 		output.Error(fmt.Sprintf("Failed to fetch albums: %v", err))
@@ -111,6 +120,10 @@ func DownloadAlbums(ownerID int, albumIDs []string, logger *slog.Logger, reporte
 	output.Info(fmt.Sprintf("Downloading %d album(s)", len(albums)))
 
 	for _, album := range albums {
+		if err := ctx.Err(); err != nil {
+			reporter.Done()
+			return err
+		}
 		albumTitle := album.Title
 		if albumTitle == "" {
 			albumTitle = fmt.Sprintf("Album %d", album.ID)
@@ -125,6 +138,10 @@ func DownloadAlbums(ownerID int, albumIDs []string, logger *slog.Logger, reporte
 			continue
 		}
 		logger.Info("Created album directory", "album_id", album.ID, "dir", albumDir)
+		if err := ctx.Err(); err != nil {
+			reporter.Done()
+			continue
+		}
 		photos, err := svc.Client.GetPhotos(ownerID, strconv.Itoa(album.ID))
 		if err != nil {
 			output.Error(fmt.Sprintf("Warning! Album %d photos download is incomplete due to an internal error.", album.ID))
@@ -133,7 +150,7 @@ func DownloadAlbums(ownerID int, albumIDs []string, logger *slog.Logger, reporte
 		output.Info(fmt.Sprintf("  Found %d photo(s) in album '%s'", len(photos), albumTitle))
 		logger.Info("Found photos", "album_id", album.ID, "count", len(photos))
 		if len(photos) > 0 {
-			svc.Parser.ParseAlbumPhotos(&svc.Wg, albumDir, strconv.Itoa(album.ID), photos)
+			svc.Parser.ParseAlbumPhotos(ctx, &svc.Wg, albumDir, strconv.Itoa(album.ID), photos)
 		}
 
 		svc.Wg.Wait()
