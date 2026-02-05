@@ -16,9 +16,8 @@ type authStartMsg struct {
 	authVerifier string
 	authURL      string
 }
-type authResultMsg struct {
-	ok bool
-}
+type authResultMsg struct{}
+type tokenResultMsg struct{}
 
 func downloadAlbumsCmd(ctx context.Context, ownerID int, albumIDs []string) tea.Cmd {
 	return func() tea.Msg {
@@ -60,7 +59,7 @@ func authCmd() tea.Cmd {
 		session, err := auth.StartInteractiveFlow(logger)
 		if err != nil {
 			output.Error(fmt.Sprintf("Failed to authenticate: %v", err))
-			return authResultMsg{ok: false}
+			return authResultMsg{}
 		}
 		return authStartMsg{authVerifier: session.Verifier, authURL: session.AuthURL}
 	}
@@ -75,9 +74,8 @@ func finishAuthCmd(verifier, redirectURL string) tea.Cmd {
 
 		if err := auth.FinishInteractiveFlow(logger, verifier, redirectURL); err != nil {
 			output.Error(fmt.Sprintf("Failed to authenticate: %v", err))
-			return authResultMsg{ok: false}
 		}
-		return authResultMsg{ok: true}
+		return authResultMsg{}
 	}
 }
 
@@ -90,5 +88,19 @@ func openAuthBrowserCmd(url string) tea.Cmd {
 
 		auth.OpenBrowser(url, logger)
 		return nil
+	}
+}
+
+func saveTokenCmd(token string) tea.Cmd {
+	return func() tea.Msg {
+		logger, logFile := output.InitLogger(false)
+		if logFile != nil {
+			defer logFile.Close() //nolint:errcheck
+		}
+
+		if err := vkscape.AppTokenAuth(token, logger); err != nil {
+			output.Error(fmt.Sprintf("Failed to save token: %v", err))
+		}
+		return tokenResultMsg{}
 	}
 }

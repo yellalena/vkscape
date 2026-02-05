@@ -10,5 +10,8 @@ const (
 	CommandAuthTitle = "Authenticate"
 	CommandAuthDesc  = "Authenticate with VK"
 
+	CommandTokenTitle = "Save token"
+	CommandTokenDesc  = "Save app token"
+
 	MenuQuit = "Quit"
 )

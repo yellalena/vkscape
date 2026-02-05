@@ -25,13 +25,15 @@ const (
 	stateGroupIDsInput
 	stateAuthRun
 	stateAuthCompleting
+	stateTokenInput
+	stateTokenSaving
 )
 
 type userInput struct {
 	ownerID      string
 	albumIDs     string
 	authVerifier string
-	authResult   string
+	appToken     string
 }
 
 type progressModel struct {
@@ -66,6 +68,7 @@ func initialModel() model {
 		menuItem{title: utils.CommandAlbumsTitle, desc: utils.CommandAlbumsDesc},
 		menuItem{title: utils.CommandGroupsTitle, desc: utils.CommandGroupsDesc},
 		menuItem{title: utils.CommandAuthTitle, desc: utils.CommandAuthDesc},
+		menuItem{title: utils.CommandTokenTitle, desc: utils.CommandTokenDesc},
 		menuItem{title: utils.MenuQuit, desc: utils.MenuQuit},
 	}
 
@@ -111,7 +114,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.cancel = nil
 	case authStartMsg:
 		m.inputValues.authVerifier = msg.authVerifier
-		m.inputValues.authResult = ""
 		m.errMsg = ""
 		m.input.SetValue("")
 		m.input.Placeholder = "Redirect URL"
@@ -119,11 +121,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, openAuthBrowserCmd(msg.authURL))
 	case authResultMsg:
 		m.actionDone = true
-		if msg.ok {
-			m.inputValues.authResult = "Authentication complete."
-		} else {
-			m.inputValues.authResult = "Authentication failed."
-		}
+	case tokenResultMsg:
+		m.actionDone = true
 	case progressStartMsg:
 		m.progrs.progTotal = msg.total
 	case progressIncMsg:
@@ -172,6 +171,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = stateAuthRun
 				m.actionDone = false
 				return m, tea.Batch(authCmd(), m.spin.Tick)
+			case utils.CommandTokenTitle:
+				m.resetEverything()
+				m.state = stateTokenInput
+				m.actionDone = false
+				m.input.Placeholder = "App token"
+				m.input.Focus()
 			case utils.MenuQuit:
 				return m, tea.Quit
 			}
@@ -292,6 +297,33 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.state = stateMenu
 			m.clearErrorLogs()
 		}
+
+	case stateTokenInput:
+		m.input, cmd = m.input.Update(msg)
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+
+		if key, ok := msg.(tea.KeyMsg); ok {
+			switch key.String() {
+			case "enter":
+				token := strings.TrimSpace(m.input.Value())
+				if token == "" {
+					m.errMsg = "Please enter a token"
+					return m, nil
+				}
+				m.state = stateTokenSaving
+				return m, tea.Batch(saveTokenCmd(token), m.spin.Tick)
+			case "esc":
+				m.state = stateMenu
+			}
+		}
+
+	case stateTokenSaving:
+		if key, ok := msg.(tea.KeyMsg); ok && key.String() == "esc" {
+			m.state = stateMenu
+			m.clearErrorLogs()
+		}
 	}
 
 	if len(cmds) > 0 {
@@ -334,10 +366,7 @@ func (m model) View() string {
 		)
 
 	case stateDownload:
-		content := "Downloading...\n\nPlease wait.\n\n(esc to cancel view)"
-		if !m.actionDone {
-			content = fmt.Sprintf("%s Downloading...\n\nPlease wait.\n\n(esc to cancel view)", m.spin.View())
-		}
+		content := fmt.Sprintf("%s Downloading...\n\nPlease wait.\n\n(esc to cancel view)", m.spin.View())
 		if m.actionDone {
 			content = "Download complete.\n\n(esc to return to menu)"
 		}
@@ -361,8 +390,8 @@ func (m model) View() string {
 		)
 
 	case stateAuthRun:
-		if m.actionDone && m.inputValues.authResult != "" {
-			return fmt.Sprintf("%s\n\n(esc to return to menu)", m.inputValues.authResult)
+		if m.actionDone {
+			return fmt.Sprintf("%s\n\n(esc to return to menu)")
 		}
 		if m.errMsg != "" {
 			prompt := fmt.Sprintf(
@@ -379,10 +408,31 @@ func (m model) View() string {
 		return m.renderWithLogs(prompt)
 
 	case stateAuthCompleting:
-		if m.actionDone && m.inputValues.authResult != "" {
-			return fmt.Sprintf("%s\n\n(esc to return to menu)", m.inputValues.authResult)
+		content := fmt.Sprintf("%s Authenticating...\n\nPlease wait.\n\n(esc to cancel view)", m.spin.View())
+		if m.actionDone {
+			content = "Authentication completed.\n\n(esc to return to menu)"
 		}
-		return fmt.Sprintf("%s Authenticating...\n\nPlease wait.\n\n(esc to cancel view)", m.spin.View())
+		return m.renderWithLogs(content)
+
+	case stateTokenInput:
+		if m.errMsg != "" {
+			return fmt.Sprintf(
+				"Enter app token:\n\n%s\n\nError: %s\n\n(esc to cancel)",
+				m.input.View(),
+				m.errMsg,
+			)
+		}
+		return fmt.Sprintf(
+			"Enter app token:\n\n%s\n\n(esc to cancel)",
+			m.input.View(),
+		)
+
+	case stateTokenSaving:
+		content := fmt.Sprintf("%s Saving token...\n\nPlease wait.\n\n(esc to cancel view)", m.spin.View())
+		if m.actionDone {
+			content = "Token saving comleted.\n\n(esc to return to menu)"
+		}
+		return m.renderWithLogs(content)
 	}
 
 	return ""
