@@ -27,6 +27,7 @@ const (
 	stateAuthCompleting
 	stateTokenInput
 	stateTokenSaving
+	stateHelp
 )
 
 type userInput struct {
@@ -69,6 +70,7 @@ func initialModel() model {
 		menuItem{title: utils.CommandGroupsTitle, desc: utils.CommandGroupsDesc},
 		menuItem{title: utils.CommandAuthTitle, desc: utils.CommandAuthDesc},
 		menuItem{title: utils.CommandTokenTitle, desc: utils.CommandTokenDesc},
+		menuItem{title: utils.CommandHelpTitle, desc: utils.CommandHelpDesc},
 		menuItem{title: utils.MenuQuit, desc: utils.MenuQuit},
 	}
 
@@ -177,6 +179,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.actionDone = false
 				m.input.Placeholder = "App token"
 				m.input.Focus()
+			case utils.CommandHelpTitle:
+				m.state = stateHelp
+				return m, tea.ClearScreen
 			case utils.MenuQuit:
 				return m, tea.Quit
 			}
@@ -324,6 +329,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.state = stateMenu
 			m.clearErrorLogs()
 		}
+
+	case stateHelp:
+		if key, ok := msg.(tea.KeyMsg); ok && key.String() == "esc" {
+			m.state = stateMenu
+		}
 	}
 
 	if len(cmds) > 0 {
@@ -433,6 +443,9 @@ func (m model) View() string {
 			content = "Token saving comleted.\n\n(esc to return to menu)"
 		}
 		return m.renderWithLogs(content)
+
+	case stateHelp:
+		return fmt.Sprintf("%s\n\n(esc to return to menu)", utils.AppHelpText)
 	}
 
 	return ""
