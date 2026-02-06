@@ -26,5 +26,7 @@ Authentication:
 
 Notes:
 - For albums: use --owner and optional --ids.
-- For groups: use --ids with negative IDs or handles.`
+- For groups: use --ids with negative IDs or handles.
+
+Read more at https://github.com/yellalena/vkscape`
 )
