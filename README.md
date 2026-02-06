@@ -52,3 +52,4 @@ See my contacts at [Linktree](https://linktr.ee/heyaliona).
 
 - [Cobra](https://github.com/spf13/cobra) for CLI
 - [Bubble Tea](https://github.com/charmbracelet/bubbletea) for TUI
+- [VK SDK](https://github.com/SevereCloud/vksdk) for VK API
