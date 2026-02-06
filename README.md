@@ -1,12 +1,14 @@
 # VKscape
 
 <p>
-<img src="applogo.png" alt="VKscape logo" width="120">
+<img src="assets/logo.png" alt="VKscape logo" width="120">
 </p>
 
 VKscape is a CLI/TUI tool for downloading your VK archive — the stuff you can’t easily export via the official tools. It supports downloading photos from albums and posts from groups.
 
 Downloaded data will be located in the `vkscape_output` folder in the current working directory.
+
+<img src="assets/example.gif" alt="App usage example" width="480">
 
 ## Authentication
 
