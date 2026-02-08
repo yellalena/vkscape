@@ -32,7 +32,9 @@ func (p *VKParser) CloseErrorsAndCount() int {
 		return 0
 	}
 	close(p.errs)
-	return len(p.errs)
+	count := len(p.errs)
+	p.errs = nil
+	return count
 }
 
 func convertDate(timestamp int) (string, error) {
