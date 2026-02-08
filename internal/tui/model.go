@@ -401,7 +401,7 @@ func (m model) View() string {
 
 	case stateAuthRun:
 		if m.actionDone {
-			return fmt.Sprintf("%s\n\n(esc to return to menu)")
+			return fmt.Sprintf("\n\n(esc to return to menu)")
 		}
 		if m.errMsg != "" {
 			prompt := fmt.Sprintf(
