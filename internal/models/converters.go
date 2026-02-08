@@ -41,6 +41,9 @@ func AlbumIDsToPhotoAlbums(albumIDs []string) ([]PhotoAlbum, []string) {
 }
 
 func FilterAlbumsByIDs(albumIDs []string, allAlbums []PhotoAlbum) ([]PhotoAlbum, []string) {
+	if len(albumIDs) == 0 {
+		return allAlbums, nil
+	}
 	// Create a set of requested IDs for quick lookup
 	requestedIDs := make(map[int]bool)
 	var invalid []string

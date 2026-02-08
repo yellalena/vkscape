@@ -20,7 +20,7 @@ func TestFilterAlbumsByIDs(t *testing.T) {
 	}{
 		{name: "all valid", inputIDs: []string{"1", "3"}, wantIDs: []int{1, 3}, wantInvalid: nil},
 		{name: "invalid mixed", inputIDs: []string{"2", "x", "3", "bad"}, wantIDs: []int{2, 3}, wantInvalid: []string{"x", "bad"}},
-		{name: "none", inputIDs: []string{}, wantIDs: nil, wantInvalid: nil},
+		{name: "no album IDs returns all albums", inputIDs: []string{}, wantIDs: []int{1, 2, 3}, wantInvalid: nil},
 	}
 
 	for _, tc := range tests {
