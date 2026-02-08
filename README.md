@@ -8,8 +8,6 @@ VKscape is a CLI/TUI tool for downloading your VK archive â€” the stuff you canâ
 
 Downloaded data will be located in the `vkscape_output` folder in the current working directory.
 
-[Installable](#installation) using `homebrew tap` or `go install`.
-
 <img src="assets/example.gif" alt="App usage example" width="480">
 
 ## Installation
