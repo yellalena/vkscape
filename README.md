@@ -12,6 +12,26 @@ Downloaded data will be located in the `vkscape_output` folder in the current wo
 
 <img src="assets/example.gif" alt="App usage example" width="480">
 
+## Installation
+
+### Homebrew (tap)
+
+```
+brew tap yellalena/tap
+brew install vkscape
+```
+
+### Go install
+
+```
+go install github.com/yellalena/vkscape@latest
+```
+
+## Usage
+
+- Run `vkscape` with no arguments to launch the TUI (screenshot above).
+- Use subcommands (e.g. `vkscape auth`, `vkscape albums`, `vkscape groups`) or `--help` to use the CLI.
+
 ## Authentication
 
 VKscape supports two authentication methods:
@@ -38,20 +58,6 @@ VKscape supports two authentication methods:
 - Download posts from groups by IDs or handles.
   - note that group IDs should be a negative integer ([reference](https://dev.vk.com/ru/method/wall.post#%D0%9F%D0%B0%D1%80%D0%B0%D0%BC%D0%B5%D1%82%D1%80%D1%8B))
 
-## Installation
-
-### Homebrew (tap)
-
-```
-brew tap yellalena/tap
-brew install vkscape
-```
-
-### Go install
-
-```
-go install github.com/yellalena/vkscape@latest
-```
 
 ## What’s next
 
