@@ -41,10 +41,10 @@ func InitLogger(verbose bool) (*slog.Logger, *os.File) {
 }
 
 func getLogPath() string {
-	userHomeDir, err := os.UserHomeDir()
-	if err != nil {
+	tmpDir := os.TempDir()
+	if tmpDir == "" {
 		return filepath.Join(utils.OutputDir, logFilename)
 	}
 
-	return filepath.Join(userHomeDir, "vkscape", logFilename)
+	return filepath.Join(tmpDir, "vkscape", logFilename)
 }
