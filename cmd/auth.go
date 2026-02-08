@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"strings"
+
 	"github.com/spf13/cobra"
 	"github.com/yellalena/vkscape/internal/output"
 	"github.com/yellalena/vkscape/internal/utils"
@@ -45,7 +47,8 @@ var authCmd = &cobra.Command{
 				return
 			}
 		} else {
-			if err := vkscape.AppTokenAuth(tokenFlag, logger); err != nil {
+			token := strings.TrimSpace(tokenFlag)
+			if err := vkscape.AppTokenAuth(token, logger); err != nil {
 				return
 			}
 		}
