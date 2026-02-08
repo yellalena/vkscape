@@ -23,7 +23,7 @@ import (
 )
 
 var _ = godotenv.Load()
-var vkClientID = os.Getenv("VK_CLIENT_ID")
+var vkClientID = "51812294"
 
 const (
 	vkRedirectURI  = "https://oauth.vk.com/blank.html"

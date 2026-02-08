@@ -8,6 +8,8 @@ VKscape is a CLI/TUI tool for downloading your VK archive — the stuff you can�
 
 Downloaded data will be located in the `vkscape_output` folder in the current working directory.
 
+[Installable](#installation) using `homebrew tap` or `go install`.
+
 <img src="assets/example.gif" alt="App usage example" width="480">
 
 ## Authentication
@@ -35,6 +37,21 @@ VKscape supports two authentication methods:
 `vkscape groups`
 - Download posts from groups by IDs or handles.
   - note that group IDs should be a negative integer ([reference](https://dev.vk.com/ru/method/wall.post#%D0%9F%D0%B0%D1%80%D0%B0%D0%BC%D0%B5%D1%82%D1%80%D1%8B))
+
+## Installation
+
+### Homebrew (tap)
+
+```
+brew tap yellalena/tap
+brew install vkscape
+```
+
+### Go install
+
+```
+go install github.com/yellalena/vkscape@latest
+```
 
 ## What’s next
 
