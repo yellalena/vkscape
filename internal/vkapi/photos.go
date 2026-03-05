@@ -1,6 +1,8 @@
 package vkapi
 
 import (
+	"context"
+
 	"github.com/SevereCloud/vksdk/v2/api"
 	vkObject "github.com/SevereCloud/vksdk/v2/object"
 )
@@ -52,4 +54,63 @@ func (VK *VKClient) GetPhotos(ownerID int, albumID string) ([]vkObject.PhotosPho
 	}
 
 	return allPhotos, nil
+}
+
+func (VK *VKClient) StreamConversationPhotos(
+	ctx context.Context,
+	peerID int,
+) (<-chan vkObject.PhotosPhoto, <-chan error) {
+
+	photos := make(chan vkObject.PhotosPhoto)
+	errs := make(chan error, 1)
+
+	go func() {
+		defer close(photos)
+		defer close(errs)
+
+		count := 100
+		startFrom := ""
+
+		for {
+			if ctx.Err() != nil {
+				errs <- ctx.Err()
+				return
+			}
+
+			params := api.Params{
+				"media_type": "photo",
+				"peer_id":    peerID,
+				"count":      count,
+			}
+
+			if startFrom != "" {
+				params["start_from"] = startFrom
+			}
+
+			res, err := VK.Client.MessagesGetHistoryAttachments(params)
+			if err != nil {
+				errs <- err
+				return
+			}
+
+			for _, item := range res.Items {
+				if item.Attachment.Type == "photo" {
+					select {
+					case photos <- item.Attachment.Photo:
+					case <-ctx.Done():
+						errs <- ctx.Err()
+						return
+					}
+				}
+			}
+
+			if res.NextFrom == "" {
+				return
+			}
+
+			startFrom = res.NextFrom
+		}
+	}()
+
+	return photos, errs
 }
