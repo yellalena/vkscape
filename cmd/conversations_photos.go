@@ -15,7 +15,7 @@ import (
 var conversationPhotosDownloadCmd = &cobra.Command{
 	Use:   "conversation_photos",
 	Short: utils.CommandConversationsPhotosDesc,
-	Long: `Download photos from conversations by conversation IDs.
+	Long: `Download photos from conversation by conversation ID.
 
 		Peer ID (conversation ID):
 		- Numeric conversation ID

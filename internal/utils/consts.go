@@ -7,7 +7,7 @@ const (
 	CommandGroupsTitle = "Download groups"
 	CommandGroupsDesc  = "Download posts from groups"
 
-	CommandConversationsPhotosTitle = "Download conversations' photos"
+	CommandConversationsPhotosTitle = "Download conversation photos"
 	CommandConversationsPhotosDesc = "Download photos from conversations"
 
 	CommandAuthTitle = "Authenticate"
