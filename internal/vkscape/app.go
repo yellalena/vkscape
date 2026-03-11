@@ -169,7 +169,7 @@ func DownloadAlbums(ctx context.Context, ownerID int, albumIDs []string, logger 
 	return nil
 }
 
-func DownloadConversationPhotos(ctx context.Context, peerID int, startFrom string, logger *slog.Logger, reporter progress.Reporter) error {
+func DownloadConversationPhotos(ctx context.Context, peerID int, logger *slog.Logger, reporter progress.Reporter) error {
 	if logger == nil {
 		return fmt.Errorf("logger is nil")
 	}

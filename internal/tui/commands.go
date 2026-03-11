@@ -13,6 +13,7 @@ import (
 
 type downloadAlbumsDoneMsg struct{}
 type downloadGroupsDoneMsg struct{}
+type DownloadConversationPhotosMsg struct{}
 type authStartMsg struct {
 	authVerifier string
 	authURL      string
@@ -37,6 +38,16 @@ func downloadGroupsCmd(ctx context.Context, groupIDs []string) tea.Cmd {
 			output.Error(fmt.Sprintf("Failed to download groups: %v", err))
 		}
 		return downloadGroupsDoneMsg{}
+	})
+}
+
+func DownloadConversationPhotosCmd(ctx context.Context, peerID int) tea.Cmd {
+	return withLogger(func(logger *slog.Logger) tea.Msg {
+		reporter := newTUIProgressReporter(getProgressSender())
+		if err := vkscape.DownloadConversationPhotos(ctx, peerID, logger, reporter); err != nil {
+			output.Error(fmt.Sprintf("Failed to download photos from conversation: %v", err))
+		}
+		return DownloadConversationPhotosMsg{}
 	})
 }
 
