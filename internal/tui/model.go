@@ -294,12 +294,29 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key, ok := msg.(tea.KeyMsg); ok {
 			switch key.String() {
 			case "enter":
-				m.inputValues.peerID = m.input.Value()
-				m.state = statePeerIDInput
+				peerIDStr := strings.TrimSpace(m.input.Value())
+
+				peerID, err := strconv.Atoi(peerIDStr)
+				if err != nil {
+					m.errMsg = "Peer ID must be numeric"
+					return m, nil
+				}
+
+				// Save value
+				m.inputValues.peerID = peerIDStr
 				m.errMsg = ""
+
+				// Clear input for next use
 				m.input.SetValue("")
-				m.input.Placeholder = "Peer ID"
-				m.input.Focus()
+
+				// Move to next state (trigger your photo download)
+				m.state = stateDownload
+
+				// Start download command (example)
+				ctx, cancel := context.WithCancel(context.Background())
+				m.cancel = cancel
+				return m, tea.Batch(downloadConversationPhotosCmd(ctx, peerID), m.spin.Tick)
+
 			case "esc":
 				m.state = stateMenu
 			}

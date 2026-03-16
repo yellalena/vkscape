@@ -41,7 +41,7 @@ func downloadGroupsCmd(ctx context.Context, groupIDs []string) tea.Cmd {
 	})
 }
 
-func DownloadConversationPhotosCmd(ctx context.Context, peerID int) tea.Cmd {
+func downloadConversationPhotosCmd(ctx context.Context, peerID int) tea.Cmd {
 	return withLogger(func(logger *slog.Logger) tea.Msg {
 		reporter := newTUIProgressReporter(getProgressSender())
 		if err := vkscape.DownloadConversationPhotos(ctx, peerID, logger, reporter); err != nil {
