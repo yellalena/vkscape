@@ -7,6 +7,9 @@ const (
 	CommandGroupsTitle = "Download groups"
 	CommandGroupsDesc  = "Download posts from groups"
 
+	CommandConversationsPhotosTitle = "[Needs dev support permission] Download conversation photos"
+	CommandConversationsPhotosDesc = "[Needs dev support permission] Download photos from conversations"
+
 	CommandAuthTitle = "Authenticate"
 	CommandAuthDesc  = "Authenticate with VK"
 

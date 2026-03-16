@@ -23,6 +23,7 @@ const (
 	stateAlbumOwnerInput
 	stateAlbumIDsInput
 	stateGroupIDsInput
+	statePeerIDInput
 	stateAuthRun
 	stateAuthCompleting
 	stateTokenInput
@@ -33,6 +34,7 @@ const (
 type userInput struct {
 	ownerID      string
 	albumIDs     string
+	peerID       string
 	authVerifier string
 	appToken     string
 }
@@ -68,6 +70,7 @@ func initialModel() model {
 	items := []list.Item{
 		menuItem{title: utils.CommandAlbumsTitle, desc: utils.CommandAlbumsDesc},
 		menuItem{title: utils.CommandGroupsTitle, desc: utils.CommandGroupsDesc},
+		menuItem{title: utils.CommandConversationsPhotosTitle, desc: utils.CommandConversationsPhotosDesc},
 		menuItem{title: utils.CommandAuthTitle, desc: utils.CommandAuthDesc},
 		menuItem{title: utils.CommandTokenTitle, desc: utils.CommandTokenDesc},
 		menuItem{title: utils.CommandHelpTitle, desc: utils.CommandHelpDesc},
@@ -111,6 +114,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.clearLogs()
 		m.cancel = nil
 	case downloadGroupsDoneMsg:
+		m.actionDone = true
+		m.clearLogs()
+		m.cancel = nil
+	case DownloadConversationPhotosMsg:
 		m.actionDone = true
 		m.clearLogs()
 		m.cancel = nil
@@ -167,6 +174,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = stateGroupIDsInput
 				m.actionDone = false
 				m.input.Placeholder = "Group IDs"
+				m.input.Focus()
+			case utils.CommandConversationsPhotosTitle:
+				m.resetEverything()
+				m.state = statePeerIDInput
+				m.actionDone = false
+				m.input.Placeholder = "Peer ID"
 				m.input.Focus()
 			case utils.CommandAuthTitle:
 				m.resetEverything()
@@ -272,6 +285,43 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
+	case statePeerIDInput:
+		m.input, cmd = m.input.Update(msg)
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+
+		if key, ok := msg.(tea.KeyMsg); ok {
+			switch key.String() {
+			case "enter":
+				peerIDStr := strings.TrimSpace(m.input.Value())
+
+				peerID, err := strconv.Atoi(peerIDStr)
+				if err != nil {
+					m.errMsg = "Peer ID must be numeric"
+					return m, nil
+				}
+
+				// Save value
+				m.inputValues.peerID = peerIDStr
+				m.errMsg = ""
+
+				// Clear input for next use
+				m.input.SetValue("")
+
+				// Move to next state (trigger your photo download)
+				m.state = stateDownload
+
+				// Start download command (example)
+				ctx, cancel := context.WithCancel(context.Background())
+				m.cancel = cancel
+				return m, tea.Batch(downloadConversationPhotosCmd(ctx, peerID), m.spin.Tick)
+
+			case "esc":
+				m.state = stateMenu
+			}
+		}
+
 	case stateAuthRun:
 		m.input, cmd = m.input.Update(msg)
 		if cmd != nil {
@@ -372,6 +422,19 @@ func (m model) View() string {
 		}
 		return fmt.Sprintf(
 			"Enter album IDs (comma or space separated).\nLeave empty for all:\n\n%s\n\n(esc to cancel)",
+			m.input.View(),
+		)
+	
+	case statePeerIDInput:
+		if m.errMsg != "" {
+			return fmt.Sprintf(
+				"Enter peer ID:\n\n%s\n\nError: %s\n\n(esc to cancel)",
+				m.input.View(),
+				m.errMsg,
+			)
+		}
+		return fmt.Sprintf(
+			"Enter peer ID:\n\n%s\n\n(esc to cancel)",
 			m.input.View(),
 		)
 

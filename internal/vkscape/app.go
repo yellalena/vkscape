@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	vkObject "github.com/SevereCloud/vksdk/v2/object"
 	"github.com/yellalena/vkscape/internal/auth"
 	"github.com/yellalena/vkscape/internal/config"
 	"github.com/yellalena/vkscape/internal/models"
@@ -166,6 +167,95 @@ func DownloadAlbums(ctx context.Context, ownerID int, albumIDs []string, logger 
 	)
 	reporter.Done()
 	return nil
+}
+
+func DownloadConversationPhotos(ctx context.Context, peerID int, logger *slog.Logger, reporter progress.Reporter) error {
+	if logger == nil {
+		return fmt.Errorf("logger is nil")
+	}
+
+	if err := ctx.Err(); err != nil {
+		reporter.Done()
+		return err
+	}
+
+	svc, err := InitService(logger)
+	if err != nil {
+		return err
+	}
+	output.Info(fmt.Sprintf("Processing photos for conversation %d...", peerID))
+
+	album := models.PhotoAlbum{
+		ID:          peerID,
+		Title:       fmt.Sprintf("conversation_%d", peerID),
+		Description: fmt.Sprintf("Conversation %d", peerID),
+	}
+	reporter.SetStatus(fmt.Sprintf("Creating album for conversation %d", peerID))
+
+	albumDir, err := utils.CreateAlbumDirectory(album)
+	if err != nil {
+		output.Error(fmt.Sprintf("Failed to create directory: %v", err))
+		logger.Error("Failed to create album directory",
+			"error", err,
+			"peer_id", peerID,
+		)
+		return err
+	}
+	logger.Info("Created album directory", "album_id", album.ID, "dir", albumDir)
+
+	photosCh, errCh := svc.Client.StreamConversationPhotos(ctx, peerID)
+	reporter.Start(-1) // unknown total
+
+	for {
+		select {
+
+		case photo, ok := <-photosCh:
+			if !ok {
+				// stream finished
+				svc.Wg.Wait()
+
+				errCount := svc.Parser.CloseErrorsAndCount()
+				if errCount > 0 {
+					reporter.SetStatus(fmt.Sprintf("Completed with %d errors", errCount))
+				}
+
+				reporter.Done()
+
+				output.Success(fmt.Sprintf(
+					"✅ Completed downloading photos from conversation %d",
+					peerID,
+				))
+
+				return nil
+			}
+
+			// process photo
+			svc.Parser.ParseAlbumPhotos(
+				ctx,
+				&svc.Wg,
+				albumDir,
+				strconv.Itoa(album.ID),
+				[]vkObject.PhotosPhoto{photo},
+			)
+
+			reporter.Increment()
+
+		case err := <-errCh:
+			if err != nil {
+				logger.Error(
+					"Photo streaming failed",
+					"error", err,
+					"peer_id", peerID,
+				)
+				reporter.Done()
+				return err
+			}
+
+		case <-ctx.Done():
+			reporter.Done()
+			return ctx.Err()
+		}
+	}
 }
 
 func InteractiveAuth(logger *slog.Logger) error {
